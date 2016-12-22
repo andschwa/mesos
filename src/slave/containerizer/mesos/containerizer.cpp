@@ -1601,14 +1601,24 @@ Future<bool> MesosContainerizerProcess::_launch(
       launchFlagsEnvironment.begin(),
       launchFlagsEnvironment.end());
 
+  string containerizer_executable =
+    path::join(flags.launcher_dir, MESOS_CONTAINERIZER);
+
   // Fork the child using launcher.
-  vector<string> argv(2);
-  argv[0] = MESOS_CONTAINERIZER;
-  argv[1] = MesosContainerizerLaunch::NAME;
+  // TODO(hausdorff): Reconsider the Windows command here as a part
+  // of the resolution of MESOS-6838.
+  vector<string> argv = {
+#ifdef __WINDOWS__
+    containerizer_executable,
+#else
+    MESOS_CONTAINERIZER,
+#endif // __WINDOWS__
+    MesosContainerizerLaunch::NAME,
+  };
 
   Try<pid_t> forked = launcher->fork(
       containerId,
-      path::join(flags.launcher_dir, MESOS_CONTAINERIZER),
+      containerizer_executable,
       argv,
       in.isSome() ? in.get() : Subprocess::FD(STDIN_FILENO),
       out.isSome() ? out.get() : Subprocess::FD(STDOUT_FILENO),
