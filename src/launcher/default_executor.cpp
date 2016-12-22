@@ -1058,6 +1058,8 @@ public:
 
 int main(int argc, char** argv)
 {
+  process::initialize();
+
   Flags flags;
   mesos::FrameworkID frameworkId;
   mesos::ExecutorID executorId;
