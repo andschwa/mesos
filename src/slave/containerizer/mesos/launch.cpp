@@ -50,6 +50,7 @@
 
 #include "slave/containerizer/mesos/launch.hpp"
 #include "slave/containerizer/mesos/paths.hpp"
+#include "slave/containerizer/mesos/utils.hpp"
 
 using std::cerr;
 using std::cout;
@@ -674,8 +675,7 @@ int MesosContainerizerLaunch::execute()
     }
 
     if (!environment.contains("PATH")) {
-      environment["PATH"] =
-        "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+      environment["PATH"] = defaultPath();
     }
 
     envp = os::raw::Envp(environment);
