@@ -1032,6 +1032,17 @@ bool initialize(
     }
   }
 
+#ifdef __WINDOWS__
+  // Initialize the Windows socket stack. This operation is idempotent.
+  // NOTE: Stout can report an error here if it determines it's incompatible
+  // with the WSA version, so it's important to call this even if we expect
+  // users of libprocess to have already started the socket stack themselves.
+  // We exit the process under error condition to prevent cryptic errors later.
+  if (!net::wsa_initialize()) {
+    EXIT(EXIT_FAILURE) << "WSA failed to initialize";
+  }
+#endif // __WINDOWS__
+
   // We originally tried to leave SIGPIPE unblocked and to work
   // around SIGPIPE in order to avoid imposing policy on users
   // of libprocess. However, for pipes and files, the manual
@@ -1242,7 +1253,10 @@ bool initialize(
 
 // Gracefully winds down libprocess in roughly the reverse order of
 // initialization.
-void finalize()
+// NOTE: `finalize_wsa` defaults to false. This argument controls whether
+// libprocess also finalizes the Windows socket stack, which affects the entire
+// process.
+void finalize(bool finalize_wsa)
 {
   // The clock is only paused during tests.  Pausing may lead to infinite
   // waits during clean up, so we make sure the clock is running normally.
@@ -1308,6 +1322,12 @@ void finalize()
   // NOTE: This variable is necessary for process communication, so it
   // cannot be cleared until after the `ProcessManager` is deleted.
   __address__ = Address::ANY_ANY();
+
+#ifdef __WINDOWS__
+  if (finalize_wsa && !net::wsa_cleanup()) {
+    LOG(ERROR) << "Failed to finalize the WSA socket stack";
+  }
+#endif // __WINDOWS__
 }
 
 

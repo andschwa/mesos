@@ -525,9 +525,10 @@ bool initialize(
 
 
 /**
- * Clean up the library.
+ * Clean up the library. `finalize_wsa` controls whether libprocess also
+ * finalizes the Windows socket stack, which affects the entire process.
  */
-void finalize();
+void finalize(bool finalize_wsa = false);
 
 
 /**
