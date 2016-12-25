@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+include(GroupSource)
 include(StoutConfigure)
 
 set(LOGROTATE_CONTAINER_LOGGER_TARGET logrotate_container_logger
@@ -30,6 +31,15 @@ set(QOS_CONTROLLER_TARGET load_qos_controller
 
 set(RESOURCE_ESTIMATOR_TARGET fixed_resource_estimator
   CACHE STRING "Library containing the fixed resource estimator."
+  )
+
+# SOURCE GROUPS. Allows IDEs to group header files for projects taking a
+# dependency on this package.
+########################################################################
+file(
+  GLOB_RECURSE
+  PRIVATE_AGENT_HEADERS
+  "${MESOS_SRC_DIR}/slave/*.hpp"
   )
 
 # Define process library dependencies. Tells the process library build targets

@@ -16,8 +16,8 @@
 
 # Logrotate container logger sources.
 #####################################
-set(LOGROTATE_CONTAINER_LOGGER_SRC lib_logrotate.cpp)
-set(MESOS_LOGROTATE_LOGGER_SRC logrotate.cpp)
+set(LOGROTATE_CONTAINER_LOGGER_SRC lib_logrotate.cpp lib_logrotate.hpp)
+set(MESOS_LOGROTATE_LOGGER_SRC logrotate.cpp logrotate.hpp)
 
 # Build the container logger module.
 ####################################

@@ -98,6 +98,21 @@ add_custom_target(
   make_bin_src_dir ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${MESOS_BIN_SRC_DIR})
 
+# SOURCE GROUPS. Allows IDEs to group header files for projects taking a
+# dependency on this package.
+########################################################################
+file(
+  GLOB_RECURSE
+  MESOS_HEADERS
+  "${MESOS_PUBLIC_INCLUDE_DIR}/mesos/*.hpp"
+  )
+
+macro(GROUP_MESOS_HEADERS)
+  source_group(
+    "Mesos Public Headers"
+    REGULAR_EXPRESSION "${MESOS_PUBLIC_INCLUDE_DIR}/mesos/.*\\.hpp")
+endmacro(GROUP_MESOS_HEADERS)
+
 # CONFIGURE AGENT.
 ##################
 include(AgentConfigure)

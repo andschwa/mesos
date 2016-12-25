@@ -19,6 +19,7 @@
 set(QOS_CONTROLLER_SRC
   ${QOS_CONTROLLER_SRC}
   load.cpp
+  load.hpp
   )
 
 # THE AGENT EXECUTABLE.

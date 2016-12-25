@@ -133,67 +133,7 @@ configure_file(
 
 # SOURCE FILES FOR THE MESOS LIBRARY.
 #####################################
-set(AGENT_SRC
-  ${AGENT_SRC}
-  slave/constants.cpp
-  slave/container_logger.cpp
-  slave/flags.cpp
-  slave/gc.cpp
-  slave/http.cpp
-  slave/metrics.cpp
-  slave/paths.cpp
-  slave/qos_controller.cpp
-  slave/qos_controllers/noop.cpp
-  slave/resource_estimator.cpp
-  slave/slave.cpp
-  slave/state.cpp
-  slave/status_update_manager.cpp
-  slave/validation.cpp
-  slave/container_loggers/sandbox.cpp
-  slave/containerizer/composing.cpp
-  slave/containerizer/containerizer.cpp
-  slave/containerizer/docker.cpp
-  slave/containerizer/fetcher.cpp
-  slave/containerizer/mesos/containerizer.cpp
-  slave/containerizer/mesos/isolator.cpp
-  slave/containerizer/mesos/launch.cpp
-  slave/containerizer/mesos/launcher.cpp
-  slave/containerizer/mesos/mount.cpp
-  slave/containerizer/mesos/paths.cpp
-  slave/containerizer/mesos/utils.cpp
-  slave/containerizer/mesos/io/switchboard.cpp
-  slave/containerizer/mesos/provisioner/backend.cpp
-  slave/containerizer/mesos/provisioner/paths.cpp
-  slave/containerizer/mesos/provisioner/provisioner.cpp
-  slave/containerizer/mesos/provisioner/store.cpp
-  slave/containerizer/mesos/provisioner/utils.cpp
-  slave/containerizer/mesos/provisioner/appc/cache.cpp
-  slave/containerizer/mesos/provisioner/appc/fetcher.cpp
-  slave/containerizer/mesos/provisioner/appc/paths.cpp
-  slave/containerizer/mesos/provisioner/appc/store.cpp
-  slave/containerizer/mesos/provisioner/backends/copy.cpp
-  slave/containerizer/mesos/provisioner/docker/local_puller.cpp
-  slave/containerizer/mesos/provisioner/docker/metadata_manager.cpp
-  slave/containerizer/mesos/provisioner/docker/paths.cpp
-  slave/containerizer/mesos/provisioner/docker/puller.cpp
-  slave/containerizer/mesos/provisioner/docker/registry_puller.cpp
-  slave/containerizer/mesos/provisioner/docker/store.cpp
-  slave/resource_estimators/noop.cpp
-  )
-
-if (NOT WIN32)
-  set(AGENT_SRC
-    ${AGENT_SRC}
-    slave/containerizer/mesos/isolators/docker/volume/driver.cpp
-    slave/containerizer/mesos/isolators/docker/volume/paths.cpp
-    slave/containerizer/mesos/isolators/filesystem/posix.cpp
-    slave/containerizer/mesos/isolators/network/cni/paths.cpp
-    slave/containerizer/mesos/isolators/network/cni/spec.cpp
-    slave/containerizer/mesos/isolators/posix/disk.cpp
-    slave/containerizer/mesos/isolators/posix/rlimits.cpp
-    slave/containerizer/mesos/isolators/volume/sandbox_path.cpp
-    )
-endif (NOT WIN32)
+include(AgentSourceList)
 
 set(APPC_SRC
   appc/spec.cpp
@@ -268,38 +208,6 @@ set(LINUX_SRC
   linux/ldcache.cpp
   linux/perf.cpp
   linux/systemd.cpp
-  slave/containerizer/mesos/linux_launcher.cpp
-  slave/containerizer/mesos/isolators/appc/runtime.cpp
-  slave/containerizer/mesos/isolators/cgroups/cgroups.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystem.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/blkio.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/cpu.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/cpuacct.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/cpuset.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/devices.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/hugetlb.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/memory.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/net_cls.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/net_prio.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/perf_event.cpp
-  slave/containerizer/mesos/isolators/cgroups/subsystems/pids.cpp
-  slave/containerizer/mesos/isolators/docker/runtime.cpp
-  slave/containerizer/mesos/isolators/docker/volume/isolator.cpp
-  slave/containerizer/mesos/isolators/filesystem/linux.cpp
-  slave/containerizer/mesos/isolators/filesystem/shared.cpp
-  slave/containerizer/mesos/isolators/gpu/allocator.cpp
-  slave/containerizer/mesos/isolators/gpu/isolator.cpp
-  slave/containerizer/mesos/isolators/gpu/nvml.cpp
-  slave/containerizer/mesos/isolators/gpu/volume.cpp
-  slave/containerizer/mesos/isolators/linux/capabilities.cpp
-  slave/containerizer/mesos/isolators/namespaces/ipc.cpp
-  slave/containerizer/mesos/isolators/namespaces/pid.cpp
-  slave/containerizer/mesos/isolators/network/cni/cni.cpp
-  slave/containerizer/mesos/isolators/network/cni/plugins/port_mapper/port_mapper.cpp
-  slave/containerizer/mesos/isolators/volume/image.cpp
-  slave/containerizer/mesos/provisioner/backends/aufs.cpp
-  slave/containerizer/mesos/provisioner/backends/bind.cpp
-  slave/containerizer/mesos/provisioner/backends/overlay.cpp
   )
 
 set(LOCAL_SRC
@@ -419,12 +327,6 @@ set(WATCHER_SRC
   watcher/whitelist_watcher.cpp
   )
 
-set(WIN32_SRC
-  ${WIN32_SRC}
-  slave/containerizer/mesos/isolators/filesystem/posix.cpp
-  slave/containerizer/mesos/isolators/filesystem/windows.cpp
-  )
-
 set(ZOOKEEPER_SRC
   zookeeper/authentication.cpp
   zookeeper/contender.cpp
@@ -435,6 +337,10 @@ set(ZOOKEEPER_SRC
 
 set(MESOS_SRC
   ${MESOS_SRC}
+  ${STOUT_HEADERS}
+  ${PROCESS_HEADERS}
+  ${MESOS_HEADERS}
+
   ${AGENT_SRC}
   ${APPC_SRC}
   ${AUTHENTICATION_SRC}
@@ -474,11 +380,6 @@ if (LINUX)
   set(MESOS_SRC ${MESOS_SRC} ${LINUX_SRC})
 endif (LINUX)
 
-# Include source for Windows build.
-if (WIN32)
-  set(MESOS_SRC ${MESOS_SRC} ${WIN32_SRC})
-endif (WIN32)
-
 # INCLUDE DIRECTIVES FOR MESOS LIBRARY (generates, e.g., -I/path/to/thing
 # on Linux).
 #########################################################################
@@ -511,6 +412,13 @@ set_target_properties(
   VERSION ${MESOS_PACKAGE_VERSION}
   SOVERSION ${MESOS_PACKAGE_SOVERSION}
   )
+
+# SOURCE GROUPS. Allows IDEs to group header files for projects taking a
+# dependency on this package.
+########################################################################
+GROUP_STOUT_HEADERS()
+GROUP_PROCESS_HEADERS()
+GROUP_MESOS_HEADERS()
 
 # ADD LIBRARY DEPENDENCIES (tells CMake what to compile/build first).
 ####################################################################
