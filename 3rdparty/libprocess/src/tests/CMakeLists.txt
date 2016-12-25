@@ -16,8 +16,8 @@
 
 # PROCESS TESTS.
 ################
-set(PROCESS_TESTS_SRC
-  ${PROCESS_TESTS_SRC}
+set(PROCESS_ROOT_TESTS_SRC
+  ${PROCESS_ROOT_TESTS_SRC}
   main.cpp
   collect_tests.cpp
   decoder_tests.cpp
@@ -42,12 +42,19 @@ set(PROCESS_TESTS_SRC
   )
 
 if (NOT WIN32)
-  set(PROCESS_TESTS_SRC
-    ${PROCESS_TESTS_SRC}
+  set(PROCESS_ROOT_TESTS_SRC
+    ${PROCESS_ROOT_TESTS_SRC}
     io_tests.cpp
     reap_tests.cpp
     )
 endif (NOT WIN32)
+
+set(PROCESS_TESTS_SRC
+  ${PROCESS_TESTS_SRC}
+  ${STOUT_HEADERS}
+  ${PROCESS_HEADERS}
+  ${PROCESS_ROOT_TESTS_SRC}
+  )
 
 
 # ADDITIONAL CPP FLAGS FOR PROCESS TEST BINARY (e.g., -DBUILD_DIR=...).
@@ -67,6 +74,11 @@ link_directories(${PROCESS_TEST_LIB_DIRS})
 # THE PROCESS TEST EXECUTABLE (generates, e.g., libprocess-tests, etc., on Linux).
 ###############################################################################
 add_executable(${PROCESS_TESTS_TARGET} ${PROCESS_TESTS_SRC})
+
+source_group("tests" FILES ${PROCESS_ROOT_TESTS_SRC})
+
+GROUP_STOUT_HEADERS()
+GROUP_PROCESS_HEADERS()
 
 # ADD LINKER FLAGS (generates, e.g., -lglog on Linux).
 ######################################################

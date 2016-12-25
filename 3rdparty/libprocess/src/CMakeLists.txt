@@ -17,43 +17,46 @@
 # SOURCE FILES FOR THE PROCESS LIBRARY.
 #######################################
 
-if (WIN32)
-  set(PROCESS_SRC
-    ${PROCESS_SRC}
-    subprocess_windows.cpp
-    )
-else (WIN32)
-  set(PROCESS_SRC
-    ${PROCESS_SRC}
-    subprocess_posix.cpp
-    )
-endif (WIN32)
-
-set(PROCESS_SRC
-  ${PROCESS_SRC}
-  authenticator_manager.cpp
+set(PRIVATE_PROCESS_HEADERS
+  ${PRIVATE_PROCESS_HEADERS}
   authenticator_manager.hpp
-  authenticator.cpp
-  clock.cpp
   config.hpp
   decoder.hpp
   encoder.hpp
   event_loop.hpp
-  firewall.cpp
   gate.hpp
+  poll_socket.hpp
+  process_reference.hpp
+  )
+
+if (WIN32)
+  set(PROCESS_ROOT_SRC
+    ${PROCESS_ROOT_SRC}
+    subprocess_windows.cpp
+    )
+else (WIN32)
+  set(PROCESS_ROOT_SRC
+    ${PROCESS_ROOT_SRC}
+    subprocess_posix.cpp
+    )
+endif (WIN32)
+
+set(PROCESS_ROOT_SRC
+  ${PROCESS_ROOT_SRC}
+  authenticator_manager.cpp
+  authenticator.cpp
+  clock.cpp
+  firewall.cpp
   help.cpp
   http.cpp
   io.cpp
   latch.cpp
   logging.cpp
-  metrics/metrics.cpp
   mime.cpp
   pid.cpp
   poll_socket.cpp
-  poll_socket.hpp
   profiler.cpp
   process.cpp
-  process_reference.hpp
   reap.cpp
   socket.cpp
   subprocess.cpp
@@ -61,20 +64,54 @@ set(PROCESS_SRC
   timeseries.cpp
   )
 
+set(PROCESS_METRICS_SRC
+  ${PROCESS_METRICS_SRC}
+  metrics/metrics.cpp
+  )
+
+# TODO(hausdorff): Add this to build after we resolve MESOS-6691.
+if (FALSE)
+  set(PROCESS_SSL_SRC
+    ${PROCESS_SSL_SRC}
+    openssl.cpp
+    libevent_ssl_socket.cpp
+    ssl/utilities.cpp
+    )
+endif (FALSE)
+
 if (ENABLE_LIBEVENT)
-  set(PROCESS_SRC
-    ${PROCESS_SRC}
-    libevent.hpp
+  set(PROCESS_ROOT_SRC
+    ${PROCESS_ROOT_SRC}
     libevent.cpp
-    libevent_poll.cpp)
+    libevent_poll.cpp
+    )
+
+  set(PRIVATE_PROCESS_HEADERS
+    ${PRIVATE_PROCESS_HEADERS}
+    libevent.hpp
+    )
 else (ENABLE_LIBEVENT)
-  set(PROCESS_SRC
-    ${PROCESS_SRC}
-    libev.hpp
+  set(PROCESS_ROOT_SRC
+    ${PROCESS_ROOT_SRC}
     libev.cpp
     libev_poll.cpp
     )
+
+  set(PRIVATE_PROCESS_HEADERS
+    ${PRIVATE_PROCESS_HEADERS}
+    libev.hpp
+    )
 endif (ENABLE_LIBEVENT)
+
+set(PROCESS_SRC
+  ${PROCESS_SRC}
+  ${STOUT_HEADERS}
+  ${PROCESS_HEADERS}
+  ${PRIVATE_PROCESS_HEADERS}
+  ${PROCESS_ROOT_SRC}
+  ${PROCESS_METRICS_SRC}
+  ${PROCESS_SSL_SRC}
+  )
 
 # INCLUDE DIRECTIVES FOR PROCESS LIBRARY (generates, e.g., -I/path/to/thing
 # on Linux).
@@ -98,6 +135,14 @@ else (WIN32)
     POSITION_INDEPENDENT_CODE TRUE
     )
 endif (WIN32)
+
+source_group("src" FILES ${PROCESS_ROOT_SRC})
+source_group("src\\metrics" FILES ${PROCESS_METRICS_SRC})
+source_group("src\\ssl" FILES ${PROCESS_SSL_SRC})
+source_group("Private Libprocess Headers" FILES ${PRIVATE_PROCESS_HEADERS})
+
+GROUP_STOUT_HEADERS()
+GROUP_PROCESS_HEADERS()
 
 set_target_properties(
   ${PROCESS_TARGET} PROPERTIES
