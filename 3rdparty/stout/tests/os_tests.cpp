@@ -22,6 +22,7 @@
 
 #include <cstdlib> // For rand.
 #include <list>
+#include <limits>  // For int limits.
 #include <map>
 #include <set>
 #include <sstream>
@@ -42,6 +43,7 @@
 #include <stout/os/environment.hpp>
 #include <stout/os/kill.hpp>
 #include <stout/os/killtree.hpp>
+#include <stout/os/pstree.hpp>
 #include <stout/os/write.hpp>
 #include <stout/stopwatch.hpp>
 #include <stout/strings.hpp>
@@ -327,6 +329,31 @@ TEST_F(OsTest, Sysctl)
   EXPECT_LT(Seconds(bootTime.get().tv_sec), Seconds(time.tv_sec));
 }
 #endif // __APPLE__ || __FreeBSD__
+
+
+TEST_F(OsTest, PsTreePidDoesNotExist)
+{
+  // NOTE: Although not guaranteed, on both Windows and Linux, PIDs are
+  // allocated sequentially, and therefore it is almost certainly safe to
+  // assume that the pid at int max is unused. See (e.g.) Linux System
+  // Programming by Love, Windows Internals by Russinovich et al.
+  const int pid_dne = std::numeric_limits<int>::max();
+  Try<ProcessTree> tree_dne = os::pstree(pid_dne);
+  ASSERT_ERROR(tree_dne);
+}
+
+
+TEST_F(OsTest, KillTreePidDoesNotExist)
+{
+  // NOTE: Although not guaranteed, on both Windows and Linux, PIDs are
+  // allocated sequentially, and therefore it is almost certainly safe to
+  // assume that the pid at int max is unused. See (e.g.) Linux System
+  // Programming by Love, Windows Internals by Russinovich et al.
+  const int pid_dne = std::numeric_limits<int>::max();
+  Try<list<ProcessTree>> tree_dne = os::killtree(pid_dne, SIGKILL);
+  ASSERT_SOME(tree_dne);
+  ASSERT_EQ(0, tree_dne.get().size());
+}
 
 
 // TODO(hausdorff): Enable when we implement `Fork` and `Exec`. See MESOS-3638.
