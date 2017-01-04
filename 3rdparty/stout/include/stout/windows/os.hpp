@@ -715,7 +715,7 @@ inline Try<Nothing> kill_job(pid_t pid)
 
   BOOL result = ::TerminateJobObject(safe_job_handle.get_handle(), 1);
   if (result == 0) {
-    return WindowsError();
+    return WindowsError("os::kill_job: Call to `TerminateJobObject failed");
   }
 
   return Nothing();
