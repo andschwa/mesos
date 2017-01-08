@@ -233,6 +233,9 @@ Try<Subprocess> subprocess(
     const vector<Subprocess::ParentHook>& parent_hooks,
     const vector<Subprocess::ChildHook>& child_hooks)
 {
+  // TODO(hausdorff): We should error out on Windows here if we are passing
+  // parameters that aren't used.
+
   // File descriptors for redirecting stdin/stdout/stderr.
   // These file descriptors are used for different purposes depending
   // on the specified I/O modes.
@@ -320,7 +323,13 @@ Try<Subprocess> subprocess(
 #else
     // TODO(joerg84): Consider using the childHooks and parentHooks here.
     Try<PROCESS_INFORMATION> processInformation = internal::createChildProcess(
-        path, argv, environment, stdinfds, stdoutfds, stderrfds);
+        path,
+        argv,
+        environment,
+        stdinfds,
+        stdoutfds,
+        stderrfds,
+        parent_hooks);
 
     if (processInformation.isError()) {
       process::internal::close(stdinfds, stdoutfds, stderrfds);
