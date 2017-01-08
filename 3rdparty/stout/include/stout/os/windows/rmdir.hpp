@@ -89,10 +89,39 @@ inline Try<Nothing> recursive_remove_directory(
     // Path to remove.
     const std::string current_absolute_path = current_path + current_file;
 
-    const bool is_directory = os::stat::isdir(current_absolute_path);
+    Try<bool> is_reparse_point =
+      ::internal::windows::reparse_point_attribute_set(current_absolute_path);
 
     // Delete current path, whether it's a directory, file, or symlink.
-    if (is_directory) {
+    if (!is_reparse_point.isError() && is_reparse_point.get()) {
+      // NOTE: This is a best-effort attempt to delete symlinks even when they
+      // are "hanging" (i.e., when the target has since been deleted). We call
+      // both `RemoveDirectory` and `DeleteFile` here because we are not sure
+      // whether the deleted target was a directory or a file, which in general
+      // is hard to determine on Windows.
+      //
+      // If either `RemoveDirectory` or `DeleteFile` succeeds, the reparse
+      // point has been successfully removed, and we report success.
+      const BOOL rmdir = ::RemoveDirectory(current_absolute_path.c_str());
+      const WindowsError rmdir_error("Failed to remove directory '" +
+                                     current_absolute_path + "'");
+
+      const BOOL rm = ::DeleteFile(current_absolute_path.c_str());
+      const WindowsError rm_error("Failed to remove file '" +
+                                  current_absolute_path + "'");
+
+      if (rmdir != 0 || rm != 0) {
+        // If either succeeded, we have successfully removed the reparse point,
+        // and we should report success.
+        continue;
+      } else if (rmdir == 0) {
+        // Directory removal failed first.
+        return rmdir_error;
+      } else {
+        // File remove failed first.
+        return rm_error;
+      }
+    } else if (os::stat::isdir(current_absolute_path)) {
       Try<Nothing> removed = recursive_remove_directory(
           current_absolute_path, true, continueOnError);
 
