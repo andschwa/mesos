@@ -75,6 +75,28 @@ namespace internal {
 namespace tests {
 
 
+// This command fails every other invocation.
+// For all runs i in Nat0, the following case i % 2 applies:
+//
+// Case 0:
+//   - Remove the temporary file.
+//
+// Case 1:
+//   - Attempt to remove the nonexistent temporary file.
+//   - Create the temporary file.
+//   - Exit with a non-zero status.
+#ifndef __WINDOWS__
+#define HEALTH_CHECK_COMMAND(path) \
+  "rm " + path + " || (touch " + path + " && exit 1)"
+#else
+#define HEALTH_CHECK_COMMAND(path) \
+  "powershell -command " \
+  "$ri_err = Remove-Item -ErrorAction SilentlyContinue \"" + \
+  path + "\"; if (-not $?) { set-content -Path (\"" + path + \
+  "\") -Value ($null); exit 1 }"
+#endif // !__WINDOWS__
+
+
 class HealthCheckTest : public MesosTest
 {
 public:
@@ -232,7 +254,7 @@ TEST_F(HealthCheckTest, HealthCheckProtobufValidation)
 // status is reflected in the status updates sent as reconciliation
 // answers, and in the state endpoint of both the master and the
 // agent.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTask)
+TEST_F(HealthCheckTest, HealthyTask)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -258,7 +280,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTask)
   EXPECT_NE(0u, offers.get().size());
 
   vector<TaskInfo> tasks =
-    populateTasks("sleep 120", "exit 0", offers.get()[0]);
+    populateTasks(SLEEP_COMMAND(120), "exit 0", offers.get()[0]);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealthy;
@@ -398,7 +420,7 @@ TEST_F(HealthCheckTest, ROOT_HealthyTaskWithContainerImage)
 
   // Make use of 'populateTasks()' to avoid duplicate code.
   vector<TaskInfo> tasks =
-    populateTasks("sleep 120", "exit 0", offers.get()[0]);
+    populateTasks(SLEEP_COMMAND(120), "exit 0", offers.get()[0]);
 
   TaskInfo task = tasks[0];
 
@@ -536,7 +558,13 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
   containerInfo.mutable_docker()->CopyFrom(dockerInfo);
 
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit 0", offers.get()[0], 0, None(), None(), containerInfo);
+      SLEEP_COMMAND(120),
+      "exit 0",
+      offers.get()[0],
+      0,
+      None(),
+      None(),
+      containerInfo);
 
   Future<ContainerID> containerId;
   EXPECT_CALL(containerizer, launch(_, _, _, _, _, _, _, _))
@@ -588,7 +616,7 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
 
 
 // Same as above, but use the non-shell version of the health command.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTaskNonShell)
+TEST_F(HealthCheckTest, HealthyTaskNonShell)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -615,11 +643,11 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTaskNonShell)
 
   CommandInfo command;
   command.set_shell(false);
-  command.set_value("true");
-  command.add_arguments("true");
+  command.set_value(TRUE_COMMAND);
+  command.add_arguments(TRUE_COMMAND);
 
   vector<TaskInfo> tasks =
-    populateTasks("sleep 120", command, offers.get()[0]);
+    populateTasks(SLEEP_COMMAND(120), command, offers.get()[0]);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealthy;
@@ -644,7 +672,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTaskNonShell)
 
 // This test creates a task whose health flaps, and verifies that the
 // health status updates are sent to the framework scheduler.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthStatusChange)
+TEST_F(HealthCheckTest, HealthStatusChange)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -684,11 +712,12 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthStatusChange)
   //   - Attempt to remove the nonexistent temporary file.
   //   - Create the temporary file.
   //   - Exit with a non-zero status.
-  const string healthCheckCmd =
-    "rm " + tmpPath + " || (touch " + tmpPath + " && exit 1)";
-
   vector<TaskInfo> tasks = populateTasks(
-      "sleep 120", healthCheckCmd, offers.get()[0], 0, 3);
+      SLEEP_COMMAND(120),
+      HEALTH_CHECK_COMMAND(tmpPath),
+      offers.get()[0],
+      0,
+      3);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealthy;
@@ -808,7 +837,13 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
     "(mkdir -p " + os::getcwd() + " && echo foo >" + tmpPath + " && exit 1)";
 
   vector<TaskInfo> tasks = populateTasks(
-      "sleep 60", healthCheckCmd, offers.get()[0], 0, 3, None(), containerInfo);
+      SLEEP_COMMAND(60),
+      healthCheckCmd,
+      offers.get()[0],
+      0,
+      3,
+      None(),
+      containerInfo);
 
   Future<ContainerID> containerId;
   EXPECT_CALL(containerizer, launch(_, _, _, _, _, _, _, _))
@@ -876,7 +911,7 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
 
 // This test ensures that a task is killed if the number of maximum
 // health check failures is reached.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, ConsecutiveFailures)
+TEST_F(HealthCheckTest, ConsecutiveFailures)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -902,7 +937,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, ConsecutiveFailures)
   EXPECT_NE(0u, offers.get().size());
 
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit 1", offers.get()[0], 0, 4);
+    SLEEP_COMMAND(120), "exit 1", offers.get()[0], 0, 4);
 
   // Expecting four unhealthy updates and one final kill update.
   Future<TaskStatus> statusRunning;
@@ -953,7 +988,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, ConsecutiveFailures)
 
 // Tests that the task's env variables are copied to the env used to
 // execute COMMAND health checks.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, EnvironmentSetup)
+TEST_F(HealthCheckTest, EnvironmentSetup)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -982,7 +1017,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, EnvironmentSetup)
   env["STATUS"] = "0";
 
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit $STATUS", offers.get()[0], 0, None(), env);
+    SLEEP_COMMAND(120), "exit $STATUS", offers.get()[0], 0, None(), env);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealthy;
@@ -1006,7 +1041,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, EnvironmentSetup)
 
 
 // Tests that health check failures are ignored during the grace period.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, GracePeriod)
+TEST_F(HealthCheckTest, GracePeriod)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -1034,7 +1069,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, GracePeriod)
   // The health check for this task will always fail, but the grace period of
   // 9999 seconds should mask the failures.
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 2", "false", offers.get()[0], 9999);
+    SLEEP_COMMAND(2), "false", offers.get()[0], 9999);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusFinished;
@@ -1062,7 +1097,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, GracePeriod)
 
 // This test creates a task with a health check command that will time
 // out, and verifies that the health check is retried after the timeout.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, CheckCommandTimeout)
+TEST_F(HealthCheckTest, CheckCommandTimeout)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -1088,7 +1123,14 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, CheckCommandTimeout)
   EXPECT_NE(0u, offers.get().size());
 
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "sleep 120", offers.get()[0], 0, 1, None(), None(), 1);
+      SLEEP_COMMAND(120),
+      SLEEP_COMMAND(120),
+      offers.get()[0],
+      0,
+      1,
+      None(),
+      None(),
+      1);
 
   // Expecting one unhealthy update and one final kill update.
   Future<TaskStatus> statusRunning;
@@ -1122,7 +1164,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, CheckCommandTimeout)
 // Tests the transition from healthy to unhealthy within the grace period, to
 // make sure that failures within the grace period aren't ignored if they come
 // after a success.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(
+TEST_F(
     HealthCheckTest,
     HealthyToUnhealthyTransitionWithinGracePeriod)
 {
@@ -1164,13 +1206,15 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(
   //   - Attempt to remove the nonexistent temporary file.
   //   - Create the temporary file.
   //   - Exit with a non-zero status.
-  const string healthCheckCmd =
-    "rm " + tmpPath + " || (touch " + tmpPath + " && exit 1)";
-
-  // Set the grace period to 9999 seconds, so that the healthy -> unhealthy
-  // transition happens during the grace period.
+  //
+  // NOTE: Set the grace period to 9999 seconds, so that the healthy ->
+  // unhealthy transition happens during the grace period.
   vector<TaskInfo> tasks = populateTasks(
-      "sleep 120", healthCheckCmd, offers.get()[0], 9999, 0);
+      SLEEP_COMMAND(120),
+      HEALTH_CHECK_COMMAND(tmpPath),
+      offers.get()[0],
+      9999,
+      0);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealthy;
@@ -1285,6 +1329,9 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTaskViaHTTP)
 // with the difference being the health check type is not set.
 //
 // TODO(haosdent): Remove this after the deprecation cycle which starts in 2.0.
+// TODO(hausdorff): Enable this. Mesos builds its own `curl.exe`, since it
+// can't rely on a package manager to get it. We need to make this test use
+// that executable.
 TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTaskViaHTTPWithoutType)
 {
   master::Flags masterFlags = CreateMasterFlags();
@@ -1362,7 +1409,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTaskViaHTTPWithoutType)
 //
 // NOTE: This test is almost identical to HealthyTaskViaHTTP
 // with the difference being TCP health check.
-TEST_F_TEMP_DISABLED_ON_WINDOWS(HealthCheckTest, HealthyTaskViaTCP)
+TEST_F(HealthCheckTest, HealthyTaskViaTCP)
 {
   master::Flags masterFlags = CreateMasterFlags();
   masterFlags.allocation_interval = Milliseconds(50);
