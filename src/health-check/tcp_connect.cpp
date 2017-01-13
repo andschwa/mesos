@@ -34,6 +34,8 @@
 #include <stout/option.hpp>
 #include <stout/path.hpp>
 
+#include <process/process.hpp>
+
 using std::cerr;
 using std::cout;
 using std::endl;
@@ -114,6 +116,8 @@ int testTCPConnect(const string& ip, int port)
 
 int main(int argc, char *argv[])
 {
+  process::initialize();
+
   Flags flags;
 
   Try<flags::Warnings> load = flags.load(None(), argc, argv);
