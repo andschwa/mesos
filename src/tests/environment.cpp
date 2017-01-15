@@ -24,8 +24,10 @@
 #endif // __WINDOWS__
 
 #include <list>
+#include <map>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -796,16 +798,10 @@ Environment::Environment(const Flags& _flags) : flags(_flags)
 void Environment::SetUp()
 {
   // Clear any MESOS_ environment variables so they don't affect our tests.
-  char** env = os::raw::environment();
-  for (int i = 0; env[i] != nullptr; i++) {
-    string variable = env[i];
-    if (variable.find("MESOS_") == 0) {
-      string key;
-      size_t eq = variable.find_first_of('=');
-      if (eq == string::npos) {
-        continue; // Not expecting a missing '=', but ignore anyway.
-      }
-      os::unsetenv(variable.substr(strlen("MESOS_"), eq - strlen("MESOS_")));
+  std::map<string, string> env = os::environment();
+  for (const std::pair<string, string>& entry : env) {
+    if (entry.first.find("MESOS_") == 0) {
+      os::unsetenv(entry.first);
     }
   }
 
