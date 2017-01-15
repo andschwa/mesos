@@ -36,6 +36,17 @@ if (ENABLE_OPTIMIZE)
   endif (WIN32)
 endif (ENABLE_OPTIMIZE)
 
+if (WIN32 AND NOT "$ENV{PreferredToolArchitecture}" STREQUAL "x64")
+  # In MSVC 1900, there are two bugs in the linker, one that causes linking
+  # libmesos to occasionally take hours, and one that causes us to be able to
+  # fail to open the `mesos-x.lib` file. These have been confirmed as bugs with
+  # the MSVC backend team by hausdorff.
+  message(
+    FATAL_ERROR
+    "On Windows, the environment variable %PreferredToolArchitecture% must be "
+    "set to the value `x64` to work around bugs in the MSVC toolchain")
+endif (WIN32 AND NOT "$ENV{PreferredToolArchitecture}" STREQUAL "x64")
+
 
 # 3RDPARTY OPTIONS.
 ###################
