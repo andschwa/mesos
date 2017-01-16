@@ -134,6 +134,7 @@ configure_file(
 # SOURCE FILES FOR THE MESOS LIBRARY.
 #####################################
 include(AgentSourceList)
+include(MasterSourceList)
 
 set(APPC_SRC
   appc/spec.cpp
@@ -233,32 +234,6 @@ set(LOG_SRC
 set(LOGGING_SRC
   logging/flags.cpp
   logging/logging.cpp
-  )
-
-set(MASTER_SRC
-  ${MASTER_SRC}
-  master/flags.cpp
-  master/http.cpp
-  master/maintenance.cpp
-  master/master.cpp
-  master/metrics.cpp
-  master/quota.cpp
-  master/quota_handler.cpp
-  master/registrar.cpp
-  master/weights.cpp
-  master/weights_handler.cpp
-  master/validation.cpp
-  master/allocator/allocator.cpp
-  master/allocator/mesos/hierarchical.cpp
-  master/allocator/mesos/metrics.cpp
-  master/allocator/sorter/drf/metrics.cpp
-  master/allocator/sorter/drf/sorter.cpp
-  master/contender/contender.cpp
-  master/contender/standalone.cpp
-  master/contender/zookeeper.cpp
-  master/detector/detector.cpp
-  master/detector/standalone.cpp
-  master/detector/zookeeper.cpp
   )
 
 set(MESSAGES_SRC
