@@ -35,6 +35,10 @@ message(STATUS "    BitMode:  ${BIT_MODE}")
 message(STATUS "    BuildID:  ${BUILDID}")
 message(STATUS "************************************************************")
 
+# CMAKE OPTIONS.
+################
+set(CMAKE_MACOSX_RPATH OFF)
+
 # SET UP TESTING INFRASTRUCTURE.
 ################################
 enable_testing()
