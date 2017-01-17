@@ -39,10 +39,6 @@ message(STATUS "************************************************************")
 ################
 set(CMAKE_MACOSX_RPATH OFF)
 
-# SET UP TESTING INFRASTRUCTURE.
-################################
-enable_testing()
-
 # CONFIGURE COMPILER.
 #####################
 include(CompilationConfigure)

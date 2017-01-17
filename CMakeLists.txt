@@ -68,5 +68,23 @@ add_custom_target(
   check ${STOUT_TESTS_TARGET}
   COMMAND ${PROCESS_TESTS_TARGET}
   COMMAND ${MESOS_TESTS_TARGET}
-  DEPENDS ${STOUT_TESTS_TARGET} ${PROCESS_TESTS_TARGET}  ${MESOS_TESTS_TARGET}
+  DEPENDS ${STOUT_TESTS_TARGET} ${PROCESS_TESTS_TARGET} ${MESOS_TESTS_TARGET}
+  )
+
+# Declare the `test` target. This is somewhat complicated because CMake tries
+# to reserve the `test` target and warns you if you use it. We disable the
+# warning, make sure that `include(CTest)` wasn't called, and then set our own
+# test target.
+cmake_policy(SET CMP0037 OLD)
+
+if (BUILD_TESTING OR BUILD_TESTING_STATIC OR BUILD_TESTING_SHARED)
+  message(
+    FATAL_ERROR
+    "CTest is enabled, which will conflict with our `make test` target; "
+    "please disable before continuing")
+endif (BUILD_TESTING OR BUILD_TESTING_STATIC OR BUILD_TESTING_SHARED)
+
+add_custom_target(
+  test
+  DEPENDS ${STOUT_TESTS_TARGET} ${PROCESS_TESTS_TARGET} ${MESOS_TESTS_TARGET}
   )

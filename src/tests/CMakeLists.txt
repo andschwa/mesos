@@ -289,7 +289,3 @@ if (NOT WIN32)
 endif (NOT WIN32)
 
 add_dependencies(${TEST_HELPER_TARGET} ${MESOS_TESTS_DEPENDENCIES})
-
-# ADD TEST TARGET (runs when you do, e.g., `make check`).
-#########################################################
-add_test(NAME MesosTests COMMAND ${MESOS_TESTS_TARGET})
