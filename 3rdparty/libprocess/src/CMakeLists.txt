@@ -136,13 +136,14 @@ else (WIN32)
     )
 endif (WIN32)
 
-source_group("src" FILES ${PROCESS_ROOT_SRC})
-source_group("src\\metrics" FILES ${PROCESS_METRICS_SRC})
-source_group("src\\ssl" FILES ${PROCESS_SSL_SRC})
-source_group("Private Libprocess Headers" FILES ${PRIVATE_PROCESS_HEADERS})
-
 GROUP_STOUT_HEADERS()
 GROUP_PROCESS_HEADERS()
+
+GROUP_SOURCE(
+  "src"
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "*.[ch]*")
 
 set_target_properties(
   ${PROCESS_TARGET} PROPERTIES

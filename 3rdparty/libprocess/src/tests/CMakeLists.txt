@@ -75,10 +75,14 @@ link_directories(${PROCESS_TEST_LIB_DIRS})
 ###############################################################################
 add_executable(${PROCESS_TESTS_TARGET} ${PROCESS_TESTS_SRC})
 
-source_group("tests" FILES ${PROCESS_ROOT_TESTS_SRC})
-
 GROUP_STOUT_HEADERS()
 GROUP_PROCESS_HEADERS()
+
+GROUP_SOURCE(
+  "tests"
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "*.[ch]*")
 
 # ADD LINKER FLAGS (generates, e.g., -lglog on Linux).
 ######################################################

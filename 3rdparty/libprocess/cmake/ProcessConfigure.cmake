@@ -54,21 +54,11 @@ file(
   )
 
 macro(GROUP_PROCESS_HEADERS)
-  source_group(
-    "Libprocess Headers"
-    REGULAR_EXPRESSION "${PROCESS_INCLUDE_DIR}/process/.*\\.hpp")
-  source_group(
-    "Libprocess Headers\\metrics"
-    REGULAR_EXPRESSION "${PROCESS_INCLUDE_DIR}/process/metrics/.*\\.hpp")
-  source_group(
-    "Libprocess Headers\\posix"
-    REGULAR_EXPRESSION "${PROCESS_INCLUDE_DIR}/process/posix/.*\\.hpp")
-  source_group(
-    "Libprocess Headers\\ssl"
-    REGULAR_EXPRESSION "${PROCESS_INCLUDE_DIR}/process/ssl/.*\\.hpp")
-  source_group(
-    "Libprocess Headers\\windows"
-    REGULAR_EXPRESSION "${PROCESS_INCLUDE_DIR}/process/windows/.*\\.hpp")
+  GROUP_SOURCE(
+    "Libprocess Public Headers"
+    "${PROCESS_INCLUDE_DIR}/process"
+    "${PROCESS_INCLUDE_DIR}/process"
+    "*.h*")
 endmacro(GROUP_PROCESS_HEADERS)
 
 
