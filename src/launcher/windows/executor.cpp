@@ -78,6 +78,7 @@ PROCESS_INFORMATION launchTaskWindows(
   // but they don't return the PID of the child process.
   BOOL createProcessResult = ::CreateProcess(
       executable.empty() ? nullptr : executable.c_str(), // Module to load.
+      // TODO(andschwa): Fix string encoding assumptions.
       (LPSTR) commandLine.c_str(),                       // Command line.
       nullptr,              // Default security attributes.
       nullptr,              // Default primary thread security attributes.
@@ -93,10 +94,22 @@ PROCESS_INFORMATION launchTaskWindows(
           GetLastError());
   }
 
-  Try<HANDLE> job = os::create_job(processInfo.dwProcessId);
+  pid_t pid = processInfo.dwProcessId;
+
+  Try<std::string> name = os::name_job(pid);
+  if (name.isError()) {
+    abort();
+  }
+
+  Try<Nothing> result = os::create_job(name.get());
   // The job handle is not closed. The job lifetime is equal or lower
   // than the process lifetime.
-  if (job.isError()) {
+  if (result.isError()) {
+    abort();
+  }
+
+  result = os::assign_job(name.get(), pid);
+  if (result.isError()) {
     abort();
   }
 

@@ -22,15 +22,11 @@
 #include <stout/windows.hpp>
 
 #include <stout/os/process.hpp>
-#include <stout/os/pstree.hpp>
 
 namespace os {
 
-// Terminate the process tree rooted at the specified pid.
-// Note that if the process 'pid' has exited we'll terminate the process
-// tree(s) rooted at pids.
-// Returns the process trees that were succesfully or unsuccessfully
-// signaled. Note that the process trees can be stringified.
+// Internally this function looks up the job for the given pid,
+// and terminates the job. There is no process tree concept on Windows.
 inline Try<std::list<ProcessTree>> killtree(
     pid_t pid,
     int signal,
@@ -38,27 +34,17 @@ inline Try<std::list<ProcessTree>> killtree(
     bool sessions = false)
 {
   std::list<ProcessTree> process_tree_list;
-  Try<ProcessTree> process_tree = os::pstree(pid);
-  if (process_tree.isSome()) {
-    process_tree_list.push_back(process_tree.get());
-  } else {
-    // TODO(hausdorff): This warning can be removed when we transition Windows
-    // agent away from `os::killtree`. Windows does not have a robust notion of
-    // process hierarchies, and so it is not always possible to return a
-    // reasonable `ProcessTree`. See MESOS-6868.
-    LOG(ERROR) << "os::killtree Could not return a `ProcessTree` of processes "
-               << "killed, likely because the process exited before the "
-               << "signal to kill was sent";
-  }
 
-  Try<Nothing> kill_job = os::kill_job(pid);
+  Try<std::string> name = os::name_job(pid);
+    if (name.isError()) {
+      return Error("killtree: Call to `name_job` failed.");
+  }
+  Try<Nothing> kill_job = os::kill_job(name.get());
   if (kill_job.isError()) {
-    // TODO(hausdorff): This warning will be obsolete when we transition the
-    // Windows agent away from `os::kiltree`. For now, we log, because this is
-    // a very likely source of bugs, since the logic for killing a job is much
-    // more subtle on Windows than on Unix. See MESOS-6868.
     LOG(WARNING) << "Failed to delete job: " << kill_job.error();
   }
+  // TODO(andschwa): This list is meaningless on Windows,
+  // we need to refactor the usage of `killtree`.
   return process_tree_list;
 }
 

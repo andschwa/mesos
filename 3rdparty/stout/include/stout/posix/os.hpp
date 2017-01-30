@@ -315,7 +315,7 @@ inline Try<UTSInfo> uname()
 
 
 // Overload of os::pids for filtering by groups and sessions.
-// A group / session id of 0 will fitler on the group / session ID
+// A group / session id of 0 will filter on the group / session ID
 // of the calling process.
 inline Try<std::set<pid_t>> pids(Option<pid_t> group, Option<pid_t> session)
 {

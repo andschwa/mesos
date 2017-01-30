@@ -23,14 +23,9 @@
 
 #include <stout/unreachable.hpp>
 
-#include <stout/os/killtree.hpp>
-
-#ifdef __linux__
-#include "linux/systemd.hpp"
-#endif // __linux__
-
 #include "mesos/resources.hpp"
 
+#include "slave/containerizer/mesos/launcher.hpp"
 #include "slave/containerizer/mesos/windows_launcher.hpp"
 
 using namespace process;
@@ -48,7 +43,8 @@ namespace slave {
 
 Try<Launcher*> WindowsLauncher::create(const Flags& flags)
 {
-  // TODO(andschwa): Fix the unused argument (wasn't me).
+  // While currently unused, `flags` is sent to retain uniformity with
+  // the other launchers, and to reserve its use in the future.
   return new WindowsLauncher();
 }
 
@@ -58,9 +54,18 @@ Future<hashset<ContainerID>> WindowsLauncher::recover(
 {
   foreach (const ContainerState& state, states) {
     const ContainerID& containerId = state.container_id();
+    // `ContainerState` is a `protobuf::Message` and so will likely never change,
+    // meaning it will not store a job object name.
+    // Hence the need to map `pid` to `name`.
     pid_t pid = state.pid();
+    Try<std::string> name = os::name_job(pid);
+    if (name.isError()) {
+      return Failure("WindowsLauncher::recover: Call to `name_job` failed.");
+    }
 
-    if (pids.containsValue(pid)) {
+    // TODO(andschwa): Thoroughly investigate this potential scenario on Windows.
+    // This came from the PosixLauncher.
+    if (jobs.containsValue(name.get())) {
       // This should (almost) never occur. There is the possibility
       // that a new executor is launched with the same pid as one that
       // just exited (highly unlikely) and the slave dies after the
@@ -72,7 +77,7 @@ Future<hashset<ContainerID>> WindowsLauncher::recover(
                      " for container " + stringify(containerId));
     }
 
-    pids.put(containerId, pid);
+    jobs.put(containerId, name.get());
   }
 
   return hashset<ContainerID>();
@@ -99,13 +104,11 @@ Try<pid_t> WindowsLauncher::fork(
     return Error("Windows launcher does not support cloning namespaces");
   }
 
-  if (pids.contains(containerId)) {
+  if (jobs.contains(containerId)) {
     return Error("Process has already been forked for container " +
                  stringify(containerId));
   }
 
-  // If we are on systemd, then extend the life of the child. Any
-  // grandchildren's lives will also be extended.
   vector<process::Subprocess::ParentHook> parentHooks;
 
   parentHooks.emplace_back(Subprocess::ParentHook(
@@ -119,13 +122,24 @@ Try<pid_t> WindowsLauncher::fork(
         //
         // Second, the job handle is not closed here, because the job lifetime
         // is equal or lower than the process lifetime.
-        Try<HANDLE> job = os::create_job(pid);
-
-        if (job.isError()) {
-          return Error(job.error());
-        } else {
-          return Nothing();
+        Try<std::string> name = os::name_job(pid);
+        if (name.isError()) {
+          return Error(name.error());
         }
+
+        // This creates a named job object in the Windows kernel.
+        Try<Nothing> result = os::create_job(name.get());
+        if (result.isError()) {
+          return Error(result.error());
+        }
+
+        // This actually assigns the process `pid` to the job object.
+        result = os::assign_job(name.get(), pid);
+        if (result.isError()) {
+          return Error(result.error());
+        }
+
+        return Nothing();
       }));
 
   Try<Subprocess> child = subprocess(
@@ -147,8 +161,14 @@ Try<pid_t> WindowsLauncher::fork(
   LOG(INFO) << "Forked child with pid '" << child.get().pid()
             << "' for container '" << containerId << "'";
 
-  // Store the pid (session id and process group id).
-  pids.put(containerId, child.get().pid());
+  // Store the job object's name. For the `WindowsLauncher`,
+  // our abstraction is the named job object, not the first process
+  // that happened to be started for the task.
+  Try<std::string> name = os::name_job(child.get().pid());
+  if (name.isError()) {
+    return Error(name.error());
+  }
+  jobs.put(containerId, name.get());
 
   return child.get().pid();
 }
@@ -162,45 +182,35 @@ Future<Nothing> WindowsLauncher::destroy(const ContainerID& containerId)
 {
   LOG(INFO) << "Asked to destroy container " << containerId;
 
-  if (!pids.contains(containerId)) {
+  if (!jobs.contains(containerId)) {
     LOG(WARNING) << "Ignored destroy for unknown container " << containerId;
     return Nothing();
   }
 
-  pid_t pid = pids.get(containerId).get();
+  std::string name = jobs.get(containerId).get();
 
-  // Kill all processes in the session and process group.
-  Try<list<os::ProcessTree>> trees = os::killtree(pid, SIGKILL, true, true);
-
-  pids.erase(containerId);
-
-  // The child process may not have been waited on yet so we'll delay
-  // completing destroy until we're sure it has been reaped.
-  return process::reap(pid)
-    .then(lambda::bind(&_destroy, lambda::_1));
-}
-
-
-Future<Nothing> _destroy(const Future<Option<int>>& future)
-{
-  if (future.isReady()) {
-    return Nothing();
-  } else {
-    return Failure("Failed to kill all processes: " +
-                   (future.isFailed() ? future.failure() : "unknown error"));
+  // Kill all processes in the job object for the given container.
+  Try<Nothing> result = os::kill_job(name);
+  if (result.isError()) {
+    return Failure("Failed to kill job object: " + result.error());
   }
+
+  jobs.erase(containerId);
+
+  return Nothing();
 }
 
 
 Future<ContainerStatus> WindowsLauncher::status(const ContainerID& containerId)
 {
-  if (!pids.contains(containerId)) {
+  if (!jobs.contains(containerId)) {
     return Failure("Container does not exist!");
   }
 
   ContainerStatus status;
-  status.set_executor_pid(pids[containerId]);
-
+  // TODO(andschwa): Fill in more status fields when they become available.
+  // For now we return a `ContainerStatus` so that the containerizer
+  // can fill in the `ContainerID`.
   return status;
 }
 

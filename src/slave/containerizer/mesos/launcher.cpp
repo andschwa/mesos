@@ -112,26 +112,6 @@ Try<pid_t> PosixLauncher::fork(
     parentHooks.emplace_back(Subprocess::ParentHook(
         &systemd::mesos::extendLifetime));
   }
-#elif defined(__WINDOWS__)
-  parentHooks.emplace_back(Subprocess::ParentHook(
-      [](pid_t pid) -> Try<Nothing> {
-        // NOTE: There are two very important parts to this hook. First,
-        // Windows does not have a process hierarchy in the same sense that
-        // Unix does, so in order to be able to kill a task, we have to put it
-        // in a Job Object. Then, when we terminate the Job Object, it will
-        // terminate all the processes in the task (including any processes
-        // that were subsequently created by any process in this task).
-        //
-        // Second, the job handle is not closed here, because the job lifetime
-        // is equal or lower than the process lifetime.
-        Try<HANDLE> job = os::create_job(pid);
-
-        if (job.isError()) {
-          return Error(job.error());
-        } else {
-          return Nothing();
-        }
-      }));
 #endif // __linux__
 
   Try<Subprocess> child = subprocess(

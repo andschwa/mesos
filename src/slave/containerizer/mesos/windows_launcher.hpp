@@ -83,9 +83,9 @@ public:
 protected:
   WindowsLauncher() {}
 
-  // The 'pid' is the process id of the first process and also the
-  // process group id and session id.
-  hashmap<ContainerID, pid_t> pids;
+  // The `std::string name` is the identifier for the job object
+  // which owns the set of processes for the container.
+  hashmap<ContainerID, std::string> jobs;
 };
 
 
