@@ -72,6 +72,7 @@
 #include "slave/containerizer/mesos/provisioner/provisioner.hpp"
 
 #ifdef __WINDOWS__
+#include "slave/containerizer/mesos/windows_launcher.hpp"
 #include "slave/containerizer/mesos/isolators/windows.hpp"
 #include "slave/containerizer/mesos/isolators/filesystem/windows.hpp"
 #endif // __WINDOWS__

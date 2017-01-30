@@ -141,6 +141,8 @@ else (NOT WIN32)
     ${MESOS_SRC_DIR}/slave/containerizer/mesos/isolators/filesystem/posix.hpp
     ${MESOS_SRC_DIR}/slave/containerizer/mesos/isolators/filesystem/windows.cpp
     ${MESOS_SRC_DIR}/slave/containerizer/mesos/isolators/filesystem/windows.hpp
+    # TODO(andschwa): Add this to the Makefile system too.
+    ${MESOS_SRC_DIR}/slave/containerizer/mesos/windows_launcher.cpp
     )
 endif (NOT WIN32)
 

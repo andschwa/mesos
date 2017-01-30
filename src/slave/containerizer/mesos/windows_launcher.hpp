@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __LAUNCHER_HPP__
-#define __LAUNCHER_HPP__
+#ifndef __WINDOWS_LAUNCHER_HPP__
+#define __WINDOWS_LAUNCHER_HPP__
 
 #include <sys/types.h>
 
@@ -39,59 +39,26 @@
 
 #include "slave/flags.hpp"
 
+#include "slave/containerizer/mesos/launcher.hpp"
+
 namespace mesos {
 namespace internal {
 namespace slave {
 
-class Launcher
-{
-public:
-  virtual ~Launcher() {}
-
-  // Recover the necessary state for each container listed in state.
-  // Return the set of containers that are known to the launcher but
-  // not known to the slave (a.k.a. orphans).
-  virtual process::Future<hashset<ContainerID>> recover(
-      const std::list<mesos::slave::ContainerState>& states) = 0;
-
-  // Fork a new process in the containerized context. The child will
-  // exec the binary at the given path with the given argv, flags and
-  // environment. The I/O of the child will be redirected according to
-  // the specified I/O descriptors. The parentHooks will be executed
-  // in the parent process before the child execs. The parent will return
-  // the child's pid if the fork is successful.
-  virtual Try<pid_t> fork(
-      const ContainerID& containerId,
-      const std::string& path,
-      const std::vector<std::string>& argv,
-      const process::Subprocess::IO& in,
-      const process::Subprocess::IO& out,
-      const process::Subprocess::IO& err,
-      const flags::FlagsBase* flags,
-      const Option<std::map<std::string, std::string>>& environment,
-      const Option<int>& enterNamespaces,
-      const Option<int>& cloneNamespaces) = 0;
-
-  // Kill all processes in the containerized context.
-  virtual process::Future<Nothing> destroy(const ContainerID& containerId) = 0;
-
-  // Return ContainerStatus information about container.
-  // Currently only returns Executor PID info.
-  virtual process::Future<ContainerStatus> status(
-      const ContainerID& containerId) = 0;
-};
-
-
+// TODO(andschwa): Update comment for Windows.
 // Launcher suitable for any POSIX compliant system. Uses process
 // groups and sessions to track processes in a container. POSIX states
 // that process groups cannot migrate between sessions so all
 // processes for a container will be contained in a session.
-class PosixLauncher : public Launcher
+
+// Minimal implementation of a `Launcher` for the Windows platform. Does not
+// take into account process groups (jobs) or sessions.
+class WindowsLauncher : public Launcher
 {
 public:
   static Try<Launcher*> create(const Flags& flags);
 
-  virtual ~PosixLauncher() {}
+  virtual ~WindowsLauncher() {}
 
   virtual process::Future<hashset<ContainerID>> recover(
       const std::list<mesos::slave::ContainerState>& states);
@@ -114,7 +81,7 @@ public:
       const ContainerID& containerId);
 
 protected:
-  PosixLauncher() {}
+  WindowsLauncher() {}
 
   // The 'pid' is the process id of the first process and also the
   // process group id and session id.
@@ -126,4 +93,4 @@ protected:
 } // namespace internal {
 } // namespace mesos {
 
-#endif // __LAUNCHER_HPP__
+#endif // __WINDOWS_LAUNCHER_HPP__
