@@ -18,6 +18,7 @@
 #include <map>
 #include <unordered_map>
 #include <utility>
+#include <stout/lambda.hpp>
 
 #include "foreach.hpp"
 #include "hashset.hpp"
@@ -97,6 +98,13 @@ public:
     return false;
   }
 
+  // Checks whether there exists an exact key/value pair in this map.
+  bool containsKeyValue(const Key& key, const Value& value) const
+  {
+    Option<Value> v = get(key);
+    return v.isSome() ? v.get() == value : false;
+  }
+
   // Inserts a key, value pair into the map replacing an old value
   // if the key is already present.
   void put(const Key& key, const Value& value)
@@ -106,7 +114,7 @@ public:
         std::pair<Key, Value>(key, value));
   }
 
-  // Returns an Option for the binding to the key.
+  // Returns an `Option` for the binding to the `key`.
   Option<Value> get(const Key& key) const
   {
     auto it = std::unordered_map<Key, Value, Hash, Equal>::find(key);
@@ -114,6 +122,27 @@ public:
       return None();
     }
     return it->second;
+  }
+
+  // Returns an `Option` for the first `Value` matching `predicate`.
+  Option<Value> findIf(const lambda::function<bool(Value)>& predicate) const
+  {
+    auto it = std::find_if(
+        std::unordered_map<Key, Value, Hash, Equal>::cbegin(),
+        std::unordered_map<Key, Value, Hash, Equal>::cend(),
+        [predicate](std::pair<const Key, Value> pair) -> bool {
+            return predicate(pair.second);
+        });
+    if (it == std::unordered_map<Key, Value, Hash, Equal>::cend()) {
+      return None();
+    }
+    return it->second;
+  }
+
+  // Checks whether there exists a value matching the `predicate` in this map.
+  bool containsIf(const lambda::function<bool(Value)>& predicate) const
+  {
+    return findIf(predicate).isSome();
   }
 
   // Returns the set of keys in this map.
