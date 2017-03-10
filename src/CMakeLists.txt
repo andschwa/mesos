@@ -529,6 +529,21 @@ set_target_properties(
   SOVERSION ${MESOS_PACKAGE_SOVERSION}
   )
 
+set_property(DIRECTORY
+    PROPERTY COTIRE_PREFIX_HEADER_IGNORE_PATH
+        "${CMAKE_SOURCE_DIR}/src/sched/flags.hpp"
+        "${CMAKE_SOURCE_DIR}/src/sched/constants.hpp"
+        "${CMAKE_SOURCE_DIR}/include/mesos/authentication/http/basic_authenticator_factory.hpp"
+        "${CMAKE_BINARY_DIR}")
+
+set_property(DIRECTORY
+    PROPERTY COTIRE_PREFIX_HEADER_INCLUDE_PATH "${AGENT_INCLUDE_DIRS};${AGENT_3RDPARTY_INCLUDE_DIRS}")
+
+set_property(DIRECTORY
+    PROPERTY COTIRE_ADD_UNITY_BUILD FALSE)
+
+cotire(${MESOS_LIBS_TARGET})
+
 # ADD LIBRARY DEPENDENCIES (tells CMake what to compile/build first).
 ####################################################################
 add_dependencies(${MESOS_TARGET} ${MESOS_LIBS_TARGET})
