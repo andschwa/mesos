@@ -952,7 +952,7 @@ Try<Nothing> initializeHttpAuthenticators(
     return Error("Multiple HTTP authenticators not supported");
   }
 
-  Option<Authenticator*> httpAuthenticator;
+  Option<process::http::authentication::Authenticator*> httpAuthenticator;
   if (httpAuthenticatorNames[0] == internal::DEFAULT_HTTP_AUTHENTICATOR) {
     if (credentials.isNone()) {
       return Error(
@@ -964,7 +964,7 @@ Try<Nothing> initializeHttpAuthenticators(
     LOG(INFO) << "Using default '" << internal::DEFAULT_HTTP_AUTHENTICATOR
               << "' HTTP authenticator for realm '" << realm << "'";
 
-    Try<Authenticator*> authenticator =
+    Try<process::http::authentication::Authenticator*> authenticator =
       BasicAuthenticatorFactory::create(realm, credentials.get());
     if (authenticator.isError()) {
       return Error(
@@ -984,8 +984,8 @@ Try<Nothing> initializeHttpAuthenticators(
           "successfully (see --modules)");
     }
 
-    Try<Authenticator*> module =
-      modules::ModuleManager::create<Authenticator>(httpAuthenticatorNames[0]);
+    Try<process::http::authentication::Authenticator*> module =
+      modules::ModuleManager::create<process::http::authentication::Authenticator>(httpAuthenticatorNames[0]);
     if (module.isError()) {
       return Error(
           "Could not create HTTP authenticator module '" +
@@ -1000,7 +1000,7 @@ Try<Nothing> initializeHttpAuthenticators(
 
   // Ownership of the `httpAuthenticator` is passed to libprocess.
   process::http::authentication::setAuthenticator(
-    realm, Owned<Authenticator>(httpAuthenticator.get()));
+    realm, Owned<process::http::authentication::Authenticator>(httpAuthenticator.get()));
 
   return Nothing();
 }
