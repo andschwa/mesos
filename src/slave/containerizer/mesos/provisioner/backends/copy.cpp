@@ -149,7 +149,7 @@ Future<Nothing> CopyBackendProcess::_provision(
       continue;
     }
 
-    if (!strings::startsWith(node->fts_name, docker::spec::WHITEOUT_PREFIX)) {
+    if (!strings::startsWith(node->fts_name, ::docker::spec::WHITEOUT_PREFIX)) {
       continue;
     }
 
@@ -160,7 +160,7 @@ Future<Nothing> CopyBackendProcess::_provision(
     // remove them from rootfs after layer is copied to rootfs.
     whiteouts.push_back(whiteout.string());
 
-    if (node->fts_name == string(docker::spec::WHITEOUT_OPAQUE_PREFIX)) {
+    if (node->fts_name == string(::docker::spec::WHITEOUT_OPAQUE_PREFIX)) {
       const string path = path::join(rootfs, Path(whiteout).dirname());
 
       // Remove the entries under the directory labeled
@@ -176,7 +176,7 @@ Future<Nothing> CopyBackendProcess::_provision(
       const string path = path::join(
           rootfs,
           whiteout.dirname(),
-          whiteout.basename().substr(strlen(docker::spec::WHITEOUT_PREFIX)));
+          whiteout.basename().substr(strlen(::docker::spec::WHITEOUT_PREFIX)));
 
       // The file/directory labeled as whiteout may have already been
       // removed with the code above due to its parent directory labeled

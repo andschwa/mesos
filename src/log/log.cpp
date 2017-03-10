@@ -71,7 +71,7 @@ LogProcess::LogProcess(
   : ProcessBase(ID::generate("log")),
     quorum(_quorum),
     replica(new Replica(path)),
-    network(new Network(pids + (UPID) replica->pid())),
+    network(new Network(pids + static_cast<UPID>(replica->pid()))),
     autoInitialize(_autoInitialize),
     group(nullptr),
     metrics(*this, metricsPrefix) {}

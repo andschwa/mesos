@@ -252,7 +252,7 @@ Future<Option<ContainerLaunchInfo>> VolumeSandboxPathIsolatorProcess::prepare(
                 << "'" << source << "' to '" << target << "' "
                 << "for container " << containerId;
 
-      Try<Nothing> symlink = fs::symlink(source, target);
+      Try<Nothing> symlink = ::fs::symlink(source, target);
       if (symlink.isError()) {
         return Failure(
             "Failed to symlink '" + source + "' -> '" + target + "'"

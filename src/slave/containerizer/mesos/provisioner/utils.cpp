@@ -71,12 +71,12 @@ Try<Nothing> convertWhiteouts(const string& directory)
       continue;
     }
 
-    if (!strings::startsWith(node->fts_name, docker::spec::WHITEOUT_PREFIX)) {
+    if (!strings::startsWith(node->fts_name, ::docker::spec::WHITEOUT_PREFIX)) {
       continue;
     }
 
     const Path path = Path(node->fts_path);
-    if (node->fts_name == string(docker::spec::WHITEOUT_OPAQUE_PREFIX)) {
+    if (node->fts_name == string(::docker::spec::WHITEOUT_OPAQUE_PREFIX)) {
       Try<Nothing> setxattr = os::setxattr(
           path.dirname(),
           "trusted.overlay.opaque",
@@ -93,7 +93,7 @@ Try<Nothing> convertWhiteouts(const string& directory)
     } else {
       const string originalPath = path::join(
           path.dirname(),
-          path.basename().substr(strlen(docker::spec::WHITEOUT_PREFIX)));
+          path.basename().substr(strlen(::docker::spec::WHITEOUT_PREFIX)));
 
       Try<Nothing> mknod = os::mknod(originalPath, S_IFCHR, 0);
       if (mknod.isError()) {

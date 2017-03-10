@@ -166,7 +166,7 @@ Try<Resources> Containerizer::resources(const Flags& flags)
 
     // NOTE: We calculate disk size of the file system on
     // which the slave work directory is mounted.
-    Try<Bytes> disk_ = fs::size(flags.work_dir);
+    Try<Bytes> disk_ = ::fs::size(flags.work_dir);
     if (!disk_.isSome()) {
       LOG(WARNING) << "Failed to auto-detect the disk space: '"
                    << disk_.error()
