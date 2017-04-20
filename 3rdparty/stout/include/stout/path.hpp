@@ -64,7 +64,29 @@ inline std::string join(const std::vector<std::string>& paths)
 
 inline bool absolute(const std::string& path)
 {
+#ifndef __WINDOWS__
   return strings::startsWith(path, os::PATH_SEPARATOR);
+#else
+  // NOTE: We do not use `PathIsRelative` here because it does not support long
+  // paths.
+  return
+    // A UNC name of any format, which always start with two backslash
+    // characters ("\\").
+    strings::startsWith(path, "\\\\") ||
+    // A disk designator with a backslash, for example "C:\" or "d:\".
+    [path]() {
+        if (path.length() < 3) {
+          return false;
+        }
+        std::string letter = path.substr(0, 1);
+        if (!((letter >= "A" && letter <= "Z") ||
+              (letter >= "a" && letter <= "z"))) {
+          return false;
+        }
+        std::string colon = path.substr(1, 2);
+        return colon == ":\\" || colon == ":/";
+      }();
+#endif // __WINDOWS__
 }
 
 } // namespace path {
