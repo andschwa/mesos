@@ -21,7 +21,6 @@
 
 #include <sys/utime.h>
 
-#include <codecvt>
 #include <list>
 #include <map>
 #include <memory>
@@ -33,6 +32,7 @@
 #include <stout/nothing.hpp>
 #include <stout/option.hpp>
 #include <stout/path.hpp>
+#include <stout/stringify.hpp>
 #include <stout/strings.hpp>
 #include <stout/try.hpp>
 #include <stout/version.hpp>
@@ -651,6 +651,7 @@ inline Result<Process> process(pid_t pid)
 
 inline int random()
 {
+  // TODO(andschwa): Use `<random>`.
   return rand();
 }
 
@@ -704,10 +705,10 @@ inline Try<SharedHandle> open_job(
 inline Try<SharedHandle> create_job(const std::string& name)
 {
   SharedHandle jobHandle(
-      ::CreateJobObject(
+      ::CreateJobObjectW(
           nullptr,       // Use a default security descriptor, and
                          // the created handle cannot be inherited.
-          name.c_str()), // The name of the job.
+          wide_stringify(name).data()), // The name of the job.
       ::CloseHandle);
   // TODO(andschwa): Fix the type of `name` when Unicode is turned on.
 
@@ -802,16 +803,13 @@ inline Try<std::string> var()
         "os::var: `GetAllUsersProfileDirectory` succeeded unexpectedly");
   }
 
-  std::vector<wchar_t> var_folder(size);
-  if (!::GetAllUsersProfileDirectoryW(&var_folder[0], &size)) {
+  std::vector<wchar_t> buffer;
+  buffer.reserve(static_cast<size_t>(size));
+  if (!::GetAllUsersProfileDirectoryW(buffer.data(), &size)) {
     return WindowsError(
         "os::var: `GetAllUsersProfileDirectory` failed");
   }
-
-  // Convert UTF-16 `wchar[]` to UTF-8 `string`.
-  std::wstring wvar_folder(&var_folder[0]);
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-  return converter.to_bytes(wvar_folder);
+  return stringify(std::wstring(buffer.data()));
 }
 
 
