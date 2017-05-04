@@ -77,8 +77,9 @@ if (WIN32)
 
   # Speed up incremental linking for the VS compiler/linker, for more info, see:
   # https://blogs.msdn.microsoft.com/vcblog/2014/11/12/speeding-up-the-incremental-developer-build-scenario/
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:inline")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /debug:FASTLINK")
+  foreach(t EXE SHARED MODULE)
+    string(APPEND CMAKE_${t}_LINKER_FLAGS_DEBUG " /debug:fastlink")
+  endforeach()
 endif (WIN32)
 
 
