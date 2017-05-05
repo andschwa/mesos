@@ -34,7 +34,7 @@ inline std::wstring longpath(const std::string& path)
 {
   // Only add the prefix if necessary.
   if (path::absolute(path) && !strings::startsWith(path, os::LONGPATH_PREFIX)) {
-      return wide_stringify(os::LONGPATH_PREFIX + path);
+      return wide_stringify(path);
   } else {
       return wide_stringify(path);
   }

@@ -106,7 +106,9 @@ link_directories(${STOUT_TEST_LIB_DIRS})
 
 # THE STOUT TEST EXECUTABLE (generates, e.g., stout-tests, etc., on Linux).
 ###########################################################################
-add_executable(${STOUT_TESTS_TARGET} EXCLUDE_FROM_ALL ${STOUT_TESTS_SRC})
+add_executable(${STOUT_TESTS_TARGET} EXCLUDE_FROM_ALL ${STOUT_TESTS_SRC}
+  stout-tests.exe.manifest
+  )
 
 GROUP_STOUT_HEADERS()
 
