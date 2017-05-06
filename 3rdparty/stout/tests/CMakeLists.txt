@@ -106,9 +106,10 @@ link_directories(${STOUT_TEST_LIB_DIRS})
 
 # THE STOUT TEST EXECUTABLE (generates, e.g., stout-tests, etc., on Linux).
 ###########################################################################
-add_executable(${STOUT_TESTS_TARGET} EXCLUDE_FROM_ALL ${STOUT_TESTS_SRC}
-  stout-tests.exe.manifest
-  )
+add_executable(${STOUT_TESTS_TARGET} EXCLUDE_FROM_ALL ${STOUT_TESTS_SRC})
+add_custom_command(TARGET ${STOUT_TESTS_TARGET} POST_BUILD
+  COMMAND mt.exe -manifest "${CMAKE_CURRENT_SOURCE_DIR}/${STOUT_TESTS_TARGET}.exe.manifest" -updateresource:"$<TARGET_FILE:${STOUT_TESTS_TARGET}>"
+  COMMENT "Updating manifest.")
 
 GROUP_STOUT_HEADERS()
 
