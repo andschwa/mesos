@@ -26,6 +26,7 @@
 #include <stout/hashset.hpp>
 #include <stout/option.hpp>
 #include <stout/os.hpp>
+#include <stout/os/getcwd.hpp>
 #include <stout/os/shell.hpp>
 #include <stout/try.hpp>
 #include <stout/windows.hpp>
@@ -172,10 +173,16 @@ inline Try<PROCESS_INFORMATION> createChildProcess(
   // Construct the environment that will be passed to `::CreateProcessW`.
   Option<std::wstring> environmentString =
     createProcessEnvironment(environment);
-
-  const wchar_t* processEnvironment = environmentString.isNone()
+  std::vector<wchar_t> environmentVector;
+  if (environmentString.isSome()) {
+    environmentVector.assign(environmentString.get().begin(),
+                             environmentString.get().end());
+  }
+  wchar_t* processEnvironment = environmentVector.empty()
     ? nullptr
-    : environmentString.get().data();
+    : environmentVector.data();
+
+  const std::wstring cwd = wide_stringify(os::getcwd());
 
   STARTUPINFOW startupInfo;
   PROCESS_INFORMATION processInfo;
@@ -206,16 +213,20 @@ inline Try<PROCESS_INFORMATION> createChildProcess(
   //
   // [1] https://msdn.microsoft.com/en-us/library/windows/desktop/ms682425(v=vs.85).aspx
   BOOL createProcessResult = ::CreateProcessW(
-      nullptr,
-      (LPWSTR)commandLine.data(),
-      nullptr,                 // Default security attributes.
-      nullptr,                 // Default primary thread security attributes.
-      TRUE,                    // Inherited parent process handles.
+      // This is replaced by the first token of `commandLine` string.
+      static_cast<LPCWSTR>(nullptr),
+      static_cast<LPWSTR>(commandLine.data()),
+      // Default security attributes.
+      static_cast<LPSECURITY_ATTRIBUTES>(nullptr),
+      // Default primary thread security attributes.
+      static_cast<LPSECURITY_ATTRIBUTES>(nullptr),
+      // Inherited parent process handles.
+      TRUE,
       creationFlags,
-      (LPVOID)processEnvironment,
-      nullptr,                 // Use parent's current directory.
-      &startupInfo,            // STARTUPINFO pointer.
-      &processInfo);           // PROCESS_INFORMATION pointer.
+      static_cast<LPVOID>(processEnvironment),
+      static_cast<LPCWSTR>(cwd.data()),
+      &startupInfo,
+      &processInfo);
 
   if (!createProcessResult) {
     return WindowsError(
