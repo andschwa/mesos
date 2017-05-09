@@ -42,6 +42,12 @@
 #include "tests/containerizer/docker_archive.hpp"
 #endif // __linux__
 
+#ifndef __WINDOWS__
+#define FALSE_COMMAND "false"
+#else
+#define FALSE_COMMAND "cmd /C exit 1"
+#endif // __WINDOWS__
+
 namespace http = process::http;
 
 using mesos::internal::master::Master;
@@ -1090,7 +1096,7 @@ TEST_F(HealthCheckTest, GracePeriod)
   // The health check for this task will always fail, but the grace period of
   // 9999 seconds should mask the failures.
   vector<TaskInfo> tasks = populateTasks(
-    SLEEP_COMMAND(2), "false", offers.get()[0], 9999);
+    SLEEP_COMMAND(2), FALSE_COMMAND, offers.get()[0], 9999999999999);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusFinished;
