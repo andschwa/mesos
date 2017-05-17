@@ -695,10 +695,10 @@ TEST_F(HealthCheckTest, HealthyTaskNonShell)
 
   driver.launchTasks(offers.get()[0].id(), tasks);
 
-  AWAIT_READY(statusRunning);
+  AWAIT_READY(statusRunning, Seconds(30));
   EXPECT_EQ(TASK_RUNNING, statusRunning->state());
 
-  AWAIT_READY(statusHealthy);
+  AWAIT_READY(statusHealthy, Seconds(30));
   EXPECT_EQ(TASK_RUNNING, statusHealthy->state());
   EXPECT_TRUE(statusHealthy->healthy());
 
