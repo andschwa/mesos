@@ -18,10 +18,13 @@
 
 #include <ostream>
 #include <string>
+#include <vector>
 
+#include <stout/hashmap.hpp>
 #include <stout/try.hpp>
 
 #include <stout/os/raw/argv.hpp>
+#include <stout/os/raw/environment.hpp>
 
 namespace os {
 
@@ -71,7 +74,7 @@ Try<std::string> shell(const std::string& fmt, const T&... t)
   FILE* file;
   std::ostringstream stdoutstr;
 
-  if ((file = _popen(command.get().c_str(), "r")) == nullptr) {
+  if ((file = _wpopen(wide_stringify(command.get()).data(), L"r")) == nullptr) {
     return Error("Failed to run '" + command.get() + "'");
   }
 
@@ -110,8 +113,13 @@ Try<std::string> shell(const std::string& fmt, const T&... t)
 // preferred if a shell is not required.
 inline int system(const std::string& command)
 {
-  return static_cast<int>(::_spawnlp(
-    _P_WAIT, Shell::name, Shell::arg0, Shell::arg1, command.c_str(), nullptr));
+  return static_cast<int>(::_wspawnlp(
+    _P_WAIT,
+    wide_stringify(Shell::name).data(),
+    wide_stringify(Shell::arg0).data(),
+    wide_stringify(Shell::arg1).data(),
+    wide_stringify(command).data(),
+    nullptr));
 }
 
 
@@ -122,8 +130,10 @@ inline int spawn(
     const std::string& command,
     const std::vector<std::string>& arguments)
 {
-  return static_cast<int>(
-      ::_spawnvp(_P_WAIT, command.c_str(), os::raw::Argv(arguments)));
+  return static_cast<int>(::_wspawnvp(
+      _P_WAIT,
+      wide_stringify(command).data(),
+      os::raw::ArgvW(arguments)));
 }
 
 // On Windows, the `_spawnlp` call creates a new process.
@@ -136,8 +146,7 @@ inline int spawn(
 template<typename... T>
 inline int execlp(const char* file, T... t)
 {
-  exit(static_cast<int>(::_spawnlp(_P_WAIT, file, t...)));
-  return 0;
+  UNIMPLEMENTED;
 }
 
 
@@ -148,9 +157,12 @@ inline int execlp(const char* file, T... t)
 //
 // The returned value from `_spawnlp` represents child exit code when
 // `_P_WAIT` is used.
-inline int execvp(const char* file, char* const argv[])
+inline int execvp(const std::string& file, const std::vector<std::string>& argv)
 {
-  exit(static_cast<int>(::_spawnvp(_P_WAIT, file, argv)));
+  exit(static_cast<int>(::_wspawnvp(
+      _P_WAIT,
+      wide_stringify(file).data(),
+      os::raw::ArgvW(argv))));
   return 0;
 }
 
@@ -162,9 +174,16 @@ inline int execvp(const char* file, char* const argv[])
 //
 // The returned value from `_spawnvpe` represents child exit code when
 // `_P_WAIT` is used.
-inline int execvpe(const char* file, char* const argv[], char* const envp[])
+inline int execvpe(
+    const std::string& file,
+    const std::vector<std::string>& argv,
+    const hashmap<std::string, std::string>& envp)
 {
-  exit(static_cast<int>(::_spawnvpe(_P_WAIT, file, argv, envp)));
+  exit(static_cast<int>(::_wspawnvpe(
+      _P_WAIT,
+      wide_stringify(file).data(),
+      os::raw::ArgvW(argv),
+      os::raw::EnvpW(envp))));
   return 0;
 }
 

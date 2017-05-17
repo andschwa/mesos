@@ -191,6 +191,84 @@ private:
   size_t size;
 };
 
+
+#ifdef __WINDOWS__
+class EnvpW
+{
+public:
+  EnvpW(EnvpW&& that)
+    : envp(that.envp),
+      size(that.size)
+  {
+    that.envp = nullptr;
+    that.size = 0;
+  }
+
+  template <typename Map>
+  explicit EnvpW(const Map& map)
+  {
+    size = map.size();
+
+    // NOTE: We add 1 to the size for a `nullptr` terminator.
+    envp = new wchar_t*[size + 1];
+    size_t index = 0;
+
+    for (auto it = map.begin(); it != map.end(); ++it) {
+      std::wstring entry = wide_stringify(it->first) + L"=" + wide_stringify(it->second);
+      envp[index] = new wchar_t[entry.size() + 1];
+      ::memcpy(envp[index], entry.data(), entry.size() + 1);
+      ++index;
+    }
+
+    envp[index] = nullptr;
+  }
+
+  explicit EnvpW(const JSON::Object& object)
+  {
+    size = object.values.size();
+
+    // NOTE: We add 1 to the size for a `nullptr` terminator.
+    envp = new wchar_t*[size + 1];
+    size_t index = 0;
+
+    foreachpair (const std::string& key,
+                 const JSON::Value& value,
+                 object.values) {
+      std::wstring entry = wide_stringify(key) + L"=" + wide_stringify(value.as<JSON::String>().value);
+      envp[index] = new wchar_t[entry.size() + 1];
+      ::memcpy(envp[index], entry.data(), entry.size() + 1);
+      ++index;
+    }
+
+    envp[index] = nullptr;
+  }
+
+  ~EnvpW()
+  {
+    if (envp == nullptr) {
+      return;
+    }
+
+    for (size_t i = 0; i < size; i++) {
+      delete[] envp[i];
+    }
+    delete[] envp;
+  }
+
+  operator wchar_t**()
+  {
+    return envp;
+  }
+
+private:
+  EnvpW(const EnvpW&) = delete;
+  EnvpW& operator=(const EnvpW&) = delete;
+
+  wchar_t **envp;
+  size_t size;
+};
+#endif
+
 } // namespace raw {
 } // namespace os {
 

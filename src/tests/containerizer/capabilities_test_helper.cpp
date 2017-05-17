@@ -25,7 +25,7 @@
 
 #include <stout/os/su.hpp>
 
-#include <stout/os/raw/argv.hpp>
+#include <stout/os/shell.hpp>
 
 #include <mesos/type_utils.hpp>
 
@@ -139,7 +139,7 @@ int CapabilitiesTestHelper::execute()
 
   // We use `ping` as a command since it has setuid bit set. This
   // allows us to test if capabilities whitelist works or not.
-  ::execvp("ping", os::raw::Argv(argv));
+  os::execvp("ping", argv);
 
   cerr << "'ping' failed: " << strerror(errno) << endl;
 

@@ -20,11 +20,13 @@
 
 #include <ostream>
 #include <string>
+#include <vector>
 
 #include <glog/logging.h>
 
 #include <stout/error.hpp>
 #include <stout/format.hpp>
+#include <stout/hashmap.hpp>
 #include <stout/try.hpp>
 
 #include <stout/os/raw/argv.hpp>
@@ -166,7 +168,7 @@ inline int spawn(
     return -1;
   } else if (pid == 0) {
     // In child process.
-    ::execvp(command.c_str(), os::raw::Argv(arguments));
+    ::execvp(command.data(), os::raw::Argv(arguments));
     ::exit(127);
   } else {
     // In parent process.
@@ -189,10 +191,49 @@ inline int execlp(const char* file, T... t)
 }
 
 
-inline int execvp(const char* file, char* const argv[])
+inline int execvp(const std::string& file, const std::vector<std::string>& argv)
 {
-  return ::execvp(file, argv);
+  return ::execvp(file.data(), os::raw::Argv(argv));
 }
+
+
+// This function is a portable version of execvpe ('p' means searching
+// executable from PATH and 'e' means setting environments). We add
+// this function because it is not available on all systems.
+//
+// NOTE: This function is not thread safe. It is supposed to be used
+// only after fork (when there is only one thread). This function is
+// async signal safe.
+inline int execvpe(
+    const std::string& file,
+    const std::vector<std::string>& argv,
+    const hashmap<std::string, std::string>& envp)
+{
+  char** saved = os::raw::environment();
+
+  *os::raw::environmentp() = os::raw::Envp(envp);
+
+  int result = execvp(file.data(), os::raw::Argv(argv));
+
+  *os::raw::environmentp() = saved;
+
+  return result;
+}
+
+
+inline int execvpe(const char* file, char** argv, char** envp)
+{
+  char** saved = os::raw::environment();
+
+  *os::raw::environmentp() = envp;
+
+  int result = execvp(file, argv);
+
+  *os::raw::environmentp() = saved;
+
+  return result;
+}
+
 
 } // namespace os {
 

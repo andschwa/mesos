@@ -72,6 +72,49 @@ private:
   size_t size;
 };
 
+
+#ifdef __WINDOWS__
+class ArgvW
+{
+public:
+  template <typename Iterable>
+  explicit ArgvW(const Iterable& iterable)
+  {
+    std::vector<wchar_t*> _argv;
+    foreach (const std::string& arg, iterable) {
+      std::wstring argw(wide_stringify(arg));
+      wchar_t* _arg = new wchar_t[argw.size() + 1];
+      ::memcpy(_arg, argw.data(), argw.size() + 1);
+      _argv.emplace_back(_arg);
+    }
+
+    size = _argv.size();
+    argv = new wchar_t*[size + 1];
+    for (size_t i = 0; i < size; i++) {
+      argv[i] = _argv[i];
+    }
+    argv[size] = nullptr;
+  }
+
+  ~ArgvW()
+  {
+    for (size_t i = 0; i < size; i++) {
+      delete[] argv[i];
+    }
+    delete[] argv;
+  }
+
+  operator wchar_t**()
+  {
+    return argv;
+  }
+
+private:
+  wchar_t** argv;
+  size_t size;
+};
+#endif
+
 } // namespace raw {
 } // namespace os {
 

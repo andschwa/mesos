@@ -640,7 +640,7 @@ int MesosContainerizerLaunch::execute()
     ? os::Shell::name
     : launchInfo.command().value().c_str());
 
-  os::raw::Argv argv(launchInfo.command().shell()
+  vector<string> argv(launchInfo.command().shell()
     ? vector<string>({
           os::Shell::arg0,
           os::Shell::arg1,
@@ -651,7 +651,7 @@ int MesosContainerizerLaunch::execute()
 
   // Prepare the environment for the child. If 'environment' is not
   // specified, inherit the environment of the current process.
-  Option<os::raw::Envp> envp;
+  Option<hashmap<string, string>> envp;
   if (launchInfo.has_environment()) {
     // TODO(tillt): `Environment::Variable` is not a string anymore,
     // consider cleaning this up with the complete rollout of `Secrets`.
@@ -691,7 +691,7 @@ int MesosContainerizerLaunch::execute()
     }
 #endif // __WINDOWS__
 
-    envp = os::raw::Envp(environment);
+    envp = environment;
   }
 
 #ifndef __WINDOWS__
@@ -769,9 +769,9 @@ int MesosContainerizerLaunch::execute()
 #endif // __WINDOWS__
 
   if (envp.isSome()) {
-    os::execvpe(executable.c_str(), argv, envp.get());
+    os::execvpe(executable, argv, envp.get());
   } else {
-    os::execvp(executable.c_str(), argv);
+    os::execvp(executable, argv);
   }
 
   // If we get here, the execle call failed.
