@@ -120,12 +120,10 @@ inline Option<std::wstring> createProcessEnvironment(
 
   // Populate the combined environment first with the given environment
   // converted to UTF-16 for Windows.
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
   foreachpair (const std::string& key,
                const std::string& value,
                env.get()) {
-    combinedEnvironment[converter.from_bytes(key)] =
-      converter.from_bytes(value);
+    combinedEnvironment[wide_stringify(key)] = wide_stringify(value);
   }
 
   // Add the system environment variables, overwriting the previous.
@@ -166,6 +164,7 @@ inline Try<PROCESS_INFORMATION> createChildProcess(
   // buffer, so we copy the `wstring` data into this `vector`.
   std::wstring command = os::stringify_args(argv);
   std::vector<wchar_t> commandLine(command.begin(), command.end());
+  commandLine.push_back(L'\0');
 
   // Create the process suspended and with a Unicode environment.
   DWORD creationFlags = CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT;
@@ -175,6 +174,7 @@ inline Try<PROCESS_INFORMATION> createChildProcess(
     createProcessEnvironment(environment);
   std::vector<wchar_t> environmentVector;
   if (environmentString.isSome()) {
+    // This string contains the necessary null characters.
     environmentVector.assign(environmentString.get().begin(),
                              environmentString.get().end());
   }
