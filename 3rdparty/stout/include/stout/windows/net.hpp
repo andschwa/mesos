@@ -14,7 +14,8 @@
 #define __STOUT_WINDOWS_NET_HPP__
 
 #include <iphlpapi.h>
-#pragma comment(lib, "IPHLPAPI.lib")
+// Link with iphlpapi.lib
+#pragma comment(lib, "iphlpapi.lib")
 
 #include <set>
 #include <string>
@@ -23,6 +24,7 @@
 #include <stout/error.hpp>
 #include <stout/foreach.hpp>
 #include <stout/nothing.hpp>
+#include <stout/stringify.hpp>
 #include <stout/try.hpp>
 #include <stout/windows.hpp>
 
@@ -64,10 +66,35 @@ inline Try<std::set<std::string>> links()
 }
 
 
+inline Try<std::string> hostname()
+{
+  // NOTE: MSDN documentation states "The names are established at system
+  // startup, when the system reads them from the registry." This is akin to the
+  // Linux `gethostname` which calls `uname`, thus avoiding a DNS lookup. The
+  // `getHostname` function does an explicit DNS lookup.
+  COMPUTER_NAME_FORMAT format = ComputerNamePhysicalDnsHostname;
+  DWORD size = 0;
+  if (::GetComputerNameExW(format, nullptr, &size) == 0) {
+    if (GetLastError() != ERROR_MORE_DATA) {
+      return WindowsError();
+    }
+  }
+
+  std::vector<wchar_t> buffer;
+  buffer.reserve(size);
+
+  if (::GetComputerNameExW(format, buffer.data(), &size) == 0) {
+    return WindowsError();
+  }
+
+  return stringify(std::wstring(buffer.data()));
+}
+
+
 // Returns a `Try` of the result of attempting to set the `hostname`.
 inline Try<Nothing> setHostname(const std::string& hostname)
 {
-  if (SetComputerName(hostname.c_str()) == 0) {
+  if (::SetComputerNameW(wide_stringify(hostname).data()) == 0) {
     return WindowsError();
   }
 
