@@ -19,11 +19,6 @@
 option(VERBOSE "Enable verbose CMake statements and compilation output" ON)
 set(CMAKE_VERBOSE_MAKEFILE ${VERBOSE})
 
-option(ENABLE_DEBUG "Set default build configuration to debug" ON)
-if (ENABLE_DEBUG)
-  set(CMAKE_BUILD_TYPE Debug)
-endif (ENABLE_DEBUG)
-
 option(BUILD_SHARED_LIBS "Build shared libraries." OFF)
 
 option(ENABLE_PRECOMPILED_HEADERS
@@ -43,17 +38,6 @@ if (ENABLE_PRECOMPILED_HEADERS)
   set(COTIRE_ADD_UNITY_BUILD FALSE)
   set(COTIRE_VERBOSE ${VERBOSE})
 endif (ENABLE_PRECOMPILED_HEADERS)
-
-# Enable optimization?
-option(ENABLE_OPTIMIZE "Enable optimization" TRUE)
-if (ENABLE_OPTIMIZE)
-  if (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2")
-  else (WIN32)
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O2")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-  endif (WIN32)
-endif (ENABLE_OPTIMIZE)
 
 if (WIN32)
   # In MSVC 1900, there are two bugs in the linker, one that causes linking
@@ -236,15 +220,31 @@ if (WIN32)
 
   # COFF/PE and friends are somewhat limited in the number of sections they
   # allow for an object file. We use this to avoid those problems.
-  set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} /bigobj -DGOOGLE_GLOG_DLL_DECL= -DCURL_STATICLIB /vd2")
+  string(APPEND CMAKE_CXX_FLAGS " /bigobj -DGOOGLE_GLOG_DLL_DECL= /vd2")
 
   # Enable multi-threaded compilation.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  string(APPEND CMAKE_CXX_FLAGS " /MP")
 
-  # Build against the multi-threaded, static version of the runtime library.
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  # Build against the multi-threaded, correct version of the runtime library.
+  if(${BUILD_SHARED_LIBS})
+    message(WARNING "Building with shared libraries is a work-in-progress.")
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    # Use dynamic CRT
+    set(CRT " /MD")
+  else()
+    # Use static CRT
+    set(CRT " /MT")
+    # TODO(andschwa): Define this in stout, since there's a TODO in curl to set this flag properly.
+    # Since Stout includes the curl.h header, it has to set this, to set the declspec correctly.
+    string(APPEND CMAKE_CXX_FLAGS " -DCURL_STATICLIB")
+  endif()
+  # NOTE: We APPEND ${CRT} rather than REPLACE so it gets picked up by dependencies.
+  foreach(l C CXX) # foreach language
+    string(APPEND CMAKE_${l}_FLAGS ${CRT})
+    foreach(c DEBUG RELEASE RELWITHDEBINFO MINSIZEREL) # foreach configuration
+      string(APPEND CMAKE_${l}_FLAGS_${c} ${CRT})
+    endforeach()
+  endforeach()
 
   # Convenience flags to simplify Windows support in C++ source; used to
   # `#ifdef` out some platform-specific parts of Mesos.  We choose to define

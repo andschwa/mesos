@@ -55,6 +55,20 @@ if (WIN32)
   set(GLOG_URL   ${3RDPARTY_DEPENDENCIES}/glog-${GLOG_VERSION}.tar.gz)
 endif (WIN32)
 
+# CMake arguments that need to be send to all 3rdparty dependencies.
+# NOTE: The CMAKE_GENERATOR_TOOLSET is impliticly set by `ExternalProject_Add`,
+# and cannot be included twice.
+list(APPEND CMAKE_FORWARD_ARGS
+  # TODO(andschwa): Set the CMAKE_GENERATOR as an argmuent to `ExternalProject_Add`.
+  -G${CMAKE_GENERATOR}
+  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+  -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS})
+foreach(l C CXX)
+  list(APPEND CMAKE_FORWARD_ARGS -DCMAKE_${l}_FLAGS=${CMAKE_${l}_FLAGS})
+  foreach(c DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    list(APPEND CMAKE_FORWARD_ARGS -DCMAKE_${l}_FLAGS_${c}=${CMAKE_${l}_FLAGS_${c}})
+  endforeach()
+endforeach()
 
 # Define build/patch/configure commands for third-party libs.
 #############################################################
@@ -103,12 +117,9 @@ elseif (WIN32)
 
   set(LIBAPR_INSTALL_CMD ${CMAKE_NOOP})
 
-  set(LIBEVENT_C_FLAGS "/MTd /Zi")
   set(LIBEVENT_CMAKE_ARGS
     ${LIBEVENT_CMAKE_ARGS}
-    -DCMAKE_C_FLAGS_DEBUG=${LIBEVENT_C_FLAGS}
-    -DCMAKE_C_FLAGS_RELEASE=${LIBEVENT_C_FLAGS}
-    -DEVENT__DISABLE_OPENSSL=TRUE
+    -DEVENT__DISABLE_OPENSSL=ON
     )
 endif (NOT WIN32)
 
@@ -124,9 +135,11 @@ endif (NOT WIN32)
 
 set(LIBEVENT_CMAKE_ARGS
   ${LIBEVENT_CMAKE_ARGS}
-  -LH
-  -DEVENT__HAVE_SYS_STAT_H=1
-  -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+  # NOTE: libevent does not respect BUILD_SHARED_LIBS
+  -DEVENT__BUILD_SHARED_LIBRARIES=${BUILD_SHARED_LIBS}
+  -DEVENT__DISABLE_BENCHMARK=ON
+  -DEVENT__DISABLE_TESTS=ON
+  -DEVENT__DISABLE_SAMPLES=ON
   )
 
 if (ENABLE_SSL)
@@ -147,7 +160,6 @@ if (NOT WIN32)
     -DCMAKE_C_FLAGS=-fPIC
     )
 endif (NOT WIN32)
-
 
 # Third-party libraries. Tell the build system how to pull in and build third-
 # party libraries at compile time, using the ExternalProject_Add macro.
@@ -179,8 +191,8 @@ ExternalProject_Add(
 ExternalProject_Add(
   ${GLOG_TARGET}
   PREFIX            ${GLOG_CMAKE_ROOT}
-  CMAKE_ARGS        -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
   PATCH_COMMAND     ${GLOG_PATCH_CMD}
+  CMAKE_ARGS        ${CMAKE_FORWARD_ARGS};-DBUILD_TESTING=OFF
   CONFIGURE_COMMAND ${GLOG_CONFIG_CMD}
   BUILD_COMMAND     ${GLOG_BUILD_CMD}
   INSTALL_COMMAND   ${GLOG_INSTALL_CMD}
@@ -213,6 +225,7 @@ ExternalProject_Add(
   PREFIX            ${HTTP_PARSER_CMAKE_ROOT}
   UPDATE_COMMAND    ${HTTP_PARSER_UPDATE_CMD}
   PATCH_COMMAND     ${HTTP_PARSER_PATCH_CMD}
+  CMAKE_ARGS        ${CMAKE_FORWARD_ARGS}
   INSTALL_COMMAND   ${CMAKE_NOOP}
   URL               ${HTTP_PARSER_URL}
   URL_HASH          ${HTTP_PARSER_HASH}
@@ -223,6 +236,7 @@ if (NOT ENABLE_LIBEVENT)
     ${LIBEV_TARGET}
     PREFIX            ${LIBEV_CMAKE_ROOT}
     PATCH_COMMAND     ${LIBEV_PATCH_CMD}
+    CMAKE_ARGS        ${CMAKE_FORWARD_ARGS}
     CONFIGURE_COMMAND ${LIBEV_CONFIG_CMD}
     BUILD_COMMAND     ${LIBEV_BUILD_CMD}
     INSTALL_COMMAND   ${LIBEV_INSTALL_CMD}
@@ -232,22 +246,22 @@ if (NOT ENABLE_LIBEVENT)
 elseif (ENABLE_LIBEVENT)
   ExternalProject_Add(
     ${LIBEVENT_TARGET}
-    PREFIX          ${LIBEVENT_CMAKE_ROOT}
-    CMAKE_ARGS      ${LIBEVENT_CMAKE_ARGS}
-    INSTALL_COMMAND ${LIBEVENT_INSTALL_CMD}
-    URL             ${LIBEVENT_URL}
-    URL_HASH        ${LIBEVENT_HASH}
+    PREFIX            ${LIBEVENT_CMAKE_ROOT}
+    CMAKE_ARGS        ${CMAKE_FORWARD_ARGS};${LIBEVENT_CMAKE_ARGS}
+    INSTALL_COMMAND   ${LIBEVENT_INSTALL_CMD}
+    URL               ${LIBEVENT_URL}
+    URL_HASH          ${LIBEVENT_HASH}
     )
 endif (NOT ENABLE_LIBEVENT)
 
 if (WIN32)
   ExternalProject_Add(
     ${LIBAPR_TARGET}
-    PREFIX          ${LIBAPR_CMAKE_ROOT}
-    CMAKE_ARGS      -DBUILD_SHARED_LIBS=OFF
-    INSTALL_COMMAND ${LIBAPR_INSTALL_CMD}
-    URL             ${LIBAPR_URL}
-    URL_HASH        ${LIBAPR_HASH}
+    PREFIX            ${LIBAPR_CMAKE_ROOT}
+    CMAKE_ARGS        ${CMAKE_FORWARD_ARGS}
+    INSTALL_COMMAND   ${LIBAPR_INSTALL_CMD}
+    URL               ${LIBAPR_URL}
+    URL_HASH          ${LIBAPR_HASH}
     )
 endif (WIN32)
 
@@ -256,13 +270,17 @@ endif (WIN32)
 # them here.
 ###############################################################################
 if (WIN32)
+  set(CURL_CMAKE_ARGS ${CMAKE_FORWARD_ARGS} -DBUILD_CURL_TESTS=OFF)
+# NOTE: curl does not respect BUILD_SHARED_LIBS.
+if(NOT ${BUILD_SHARED_LIBS})
+  list(APPEND CURL_CMAKE_ARGS -DCURL_STATICLIB=ON)
+endif()
   # TODO(hausdorff): maybe try to incorporate this into findpackage for Windows
   ExternalProject_Add(
     ${CURL_TARGET}
     PREFIX            ${CURL_CMAKE_ROOT}
-    CMAKE_ARGS        -DBUILD_CURL_TESTS=OFF -DCURL_STATICLIB=ON -DCMAKE_C_FLAGS_DEBUG="/MTd"
     PATCH_COMMAND     ${CMAKE_NOOP}
-    BUILD_COMMAND     msbuild /p:RuntimeLibrary=MT_StaticDebug lib/libcurl.vcxproj
+    CMAKE_ARGS        ${CURL_CMAKE_ARGS}
     INSTALL_COMMAND   ${CMAKE_NOOP}
     URL               ${CURL_URL}
     URL_HASH          ${CURL_HASH}
@@ -270,12 +288,11 @@ if (WIN32)
 
   ExternalProject_Add(
     ${ZLIB_TARGET}
-    PREFIX          ${ZLIB_CMAKE_ROOT}
-    CMAKE_ARGS      -DBUILD_SHARED_LIBS=OFF
-    BUILD_COMMAND   ${GLOG_BUILD_CMD}
-    INSTALL_COMMAND ${CMAKE_NOOP}
-    URL             ${ZLIB_URL}
-    URL_HASH        ${ZLIB_HASH}
+    PREFIX            ${ZLIB_CMAKE_ROOT}
+    CMAKE_ARGS        ${CMAKE_FORWARD_ARGS}
+    INSTALL_COMMAND   ${CMAKE_NOOP}
+    URL               ${ZLIB_URL}
+    URL_HASH          ${ZLIB_HASH}
   )
 endif (WIN32)
 
@@ -314,23 +331,16 @@ if (NOT WIN32)
   set(PROTOBUF_BUILD_CMD   make)
   set(PROTOBUF_INSTALL_CMD make install)
 elseif (WIN32)
-  set(PROTOBUF_CONFIG_CMD  cmake -G ${CMAKE_GENERATOR} ../protobuf-${PROTOBUF_VERSION}/cmake -DBUILD_SHARED_LIBS=OFF -Dprotobuf_MSVC_STATIC_RUNTIME=ON -Dprotobuf_BUILD_TESTS=OFF)
-  set(PROTOBUF_BUILD_CMD   msbuild protobuf.sln)
+  set(PROTOBUF_CONFIG_CMD  cmake ${CMAKE_FORWARD_ARGS} -Dprotobuf_BUILD_TESTS=OFF ../protobuf-${PROTOBUF_VERSION}/cmake)
+  # NOTE: If you overwrite CONFIGURE_CMD, then CMake is not automatically used for BUILD_COMMAND.
+  set(PROTOBUF_BUILD_CMD   cmake --build . --config ${CMAKE_BUILD_TYPE})
   set(PROTOBUF_INSTALL_CMD ${CMAKE_NOOP})
 endif (NOT WIN32)
 
-# NOTE: An implicit consequence of the following code is that on non-Windows
-# platforms, gmock and gtest are assumed to be CMake projects, and are thus
-# configured and built using default CMake commands. The reason is that on
-# non-Windows platforms, we choose to set `GOOGLETEST_CONFIG_CMD` and
-# `GOOGLETEST_BUILD_CMD` with stub commands, which cause CMake to "fall back" to
-# trying to build them with CMake.
 ExternalProject_Add(
   ${GOOGLETEST_TARGET}
   PREFIX            ${GOOGLETEST_CMAKE_ROOT}
-  CMAKE_ARGS        -DBUILD_SHARED_LIBS=FALSE
-  CONFIGURE_COMMAND ${GOOGLETEST_CONFIG_CMD}
-  BUILD_COMMAND     ${GOOGLETEST_BUILD_CMD}
+  CMAKE_ARGS        ${CMAKE_FORWARD_ARGS}
   INSTALL_COMMAND   ${GOOGLETEST_INSTALL_CMD}
   URL               ${GOOGLETEST_URL}
   URL_HASH          ${GOOGLETEST_HASH}
@@ -339,7 +349,6 @@ ExternalProject_Add(
 ExternalProject_Add(
   ${PROTOBUF_TARGET}
   PREFIX            ${PROTOBUF_CMAKE_ROOT}
-  CMAKE_ARGS        -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} -DCMAKE_CXX_FLAGS_DEBUG="/MTd"
   CONFIGURE_COMMAND ${PROTOBUF_CONFIG_CMD}
   BUILD_COMMAND     ${PROTOBUF_BUILD_CMD}
   INSTALL_COMMAND   ${PROTOBUF_INSTALL_CMD}
@@ -400,13 +409,13 @@ elseif (WIN32)
   ExternalProject_Add(
     ${ZOOKEEPER_TARGET}
     PREFIX            ${ZOOKEEPER_CMAKE_ROOT}
+    CMAKE_ARGS        ${CMAKE_FORWARD_ARGS};-DWANT_CPPUNIT=OFF
     # Set the patch command which will utilize patch.exe in temp location for no elevation prompt
     # NOTE: We do not specify the `--binary` patch option here because the
     # files being modified are extracted with CRLF (Windows) line endings
     # already. The `--binary` option will instead fail to apply the patch.
     PATCH_COMMAND     ${PATCHEXE_LOCATION} -p1 < ${MESOS_3RDPARTY_SRC}/zookeeper-${ZOOKEEPER_VERSION}.patch
     SOURCE_SUBDIR     src/c
-    CMAKE_ARGS        -DWANT_CPPUNIT=0
     INSTALL_COMMAND   ${CMAKE_NOOP}
     URL               ${ZOOKEEPER_URL}
     URL_HASH          ${ZOOKEEPER_HASH}
