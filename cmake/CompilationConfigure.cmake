@@ -222,9 +222,6 @@ if (WIN32)
   # allow for an object file. We use this to avoid those problems.
   string(APPEND CMAKE_CXX_FLAGS " /bigobj -DGOOGLE_GLOG_DLL_DECL= /vd2")
 
-  # Enable multi-threaded compilation.
-  string(APPEND CMAKE_CXX_FLAGS " /MP")
-
   # Build against the multi-threaded, correct version of the runtime library.
   if (${BUILD_SHARED_LIBS})
     message(WARNING "Building with shared libraries is a work-in-progress.")
@@ -240,7 +237,13 @@ if (WIN32)
   endif ()
   # NOTE: We APPEND ${CRT} rather than REPLACE so it gets picked up by dependencies.
   foreach (l C CXX)
+    # Enable multi-threaded compilation.
+    string(APPEND CMAKE_${l}_FLAGS " /MP")
+    string(APPEND CMAKE_${l}_FLAGS ${CRT})
+    message("NOTE: ${CMAKE_${l}_FLAGS}")
+    # Debug library for debug configuration.
     string(APPEND CMAKE_${l}_FLAGS_DEBUG "${CRT}d")
+    # All other configurations.
     foreach (c RELEASE RELWITHDEBINFO MINSIZEREL)
       string(APPEND CMAKE_${l}_FLAGS_${c} ${CRT})
     endforeach ()
