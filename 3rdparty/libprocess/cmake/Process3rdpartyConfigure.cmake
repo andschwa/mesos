@@ -107,10 +107,13 @@ if (WIN32)
   # libcurl.lib. Hence, we have to special case it here because CMake assumes
   # the library names are generated correctly.
   set(CURL_LFLAG     libcurl)
-  set(PROTOBUF_LFLAG libprotobufd)
 
   # Windows requires a static build of zlib.
   set(ZLIB_LFLAG     zlibstaticd)
+
+  # Release configuration
+  set(PROTOBUF_LFLAG libprotobuf)
+  string(APPEND PROTOBUF_LFLAG $<$<CONFIG:Debug>:d>)
 
   # Windows requires Dbghelp.lib when linking to glog.
   # NOTE: CMake's dependency graph does not pull in the `Dbghelp` library
