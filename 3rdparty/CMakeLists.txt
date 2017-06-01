@@ -431,7 +431,7 @@ elseif (WIN32)
     # already. The `--binary` option will instead fail to apply the patch.
     PATCH_COMMAND     ${PATCHEXE_LOCATION} -p1 < ${MESOS_3RDPARTY_SRC}/zookeeper-${ZOOKEEPER_VERSION}.patch
     SOURCE_SUBDIR     src/c
-    CMAKE_ARGS        -DWANT_CPPUNIT=0
+    CMAKE_ARGS        ${CMAKE_FORWARD_ARGS};-DWANT_CPPUNIT=OFF
     INSTALL_COMMAND   ${CMAKE_NOOP}
     URL               ${ZOOKEEPER_URL}
     URL_HASH          ${ZOOKEEPER_HASH}
