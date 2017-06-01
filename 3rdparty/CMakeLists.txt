@@ -291,9 +291,6 @@ if (WIN32)
   if (NOT ${BUILD_SHARED_LIBS})
     # This is both a CMake argument, and a pre-processor definition.
     list(APPEND CURL_CMAKE_ARGS -DCURL_STATICLIB=ON)
-    # TODO(andschwa): Define this closer to its usage; anything that includes
-    # `curl.h` has to set this so that the declspec is correct.
-    string(APPEND CMAKE_CXX_FLAGS " -DCURL_STATICLIB")
   endif ()
   # TODO(hausdorff): maybe try to incorporate this into findpackage for Windows
   ExternalProject_Add(

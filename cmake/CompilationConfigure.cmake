@@ -234,6 +234,9 @@ if (WIN32)
   else ()
     # Use static CRT
     set(CRT " /MT")
+    # TODO(andschwa): Define this closer to its usage; anything that includes
+    # `curl.h` has to set this so that the declspec is correct.
+    string(APPEND CMAKE_CXX_FLAGS " -DCURL_STATICLIB")
   endif ()
   # NOTE: We APPEND ${CRT} rather than REPLACE so it gets picked up by dependencies.
   foreach (l C CXX)
