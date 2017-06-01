@@ -235,13 +235,10 @@ if (WIN32)
     # Use static CRT
     set(CRT " /MT")
   endif ()
-  if ($(CMAKE_BUILD_TYPE) MATCHES Debug)
-    string(APPEND CRT "d")
-  endif ()
   # NOTE: We APPEND ${CRT} rather than REPLACE so it gets picked up by dependencies.
-  foreach (l C CXX) # foreach language
-    string(APPEND CMAKE_${l}_FLAGS ${CRT})
-    foreach (c DEBUG RELEASE RELWITHDEBINFO MINSIZEREL) # foreach configuration
+  foreach (l C CXX)
+    string(APPEND CMAKE_${l}_FLAGS_DEBUG "${CRT}d")
+    foreach (c RELEASE RELWITHDEBINFO MINSIZEREL)
       string(APPEND CMAKE_${l}_FLAGS_${c} ${CRT})
     endforeach ()
   endforeach ()
