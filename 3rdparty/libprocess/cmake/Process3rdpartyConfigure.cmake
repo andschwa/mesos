@@ -108,13 +108,22 @@ if (WIN32)
   # the library names are generated correctly.
   set(CURL_LFLAG     libcurl)
 
-  # Windows requires a static build of zlib.
-  set(ZLIB_LFLAG     zlibstaticd)
   # Release configuration
   set(PROTOBUF_LFLAG libprotobuf)
   # Debug configuration
   if (${CMAKE_BUILD_TYPE} MATCHES Debug)
     string(APPEND PROTOBUF_LFLAG d)
+  endif ()
+
+  # Release configuration
+  set(ZLIB_LFLAG zlib)
+  # Static linkage
+  if (NOT ${BUILD_SHARED_LIBS})
+    string(APPEND ZLIB_LFLAG static)
+  endif ()
+  # Debug configuration
+  if (${CMAKE_BUILD_TYPE} MATCHES Debug)
+    string(APPEND ZLIB_LFLAG d)
   endif ()
 
   # Windows requires Dbghelp.lib when linking to glog.
