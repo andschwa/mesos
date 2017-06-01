@@ -139,25 +139,6 @@ else
 	append_dockerfile "CMD ./bootstrap && ./configure $CONFIGURATION && make -j6 distcheck 2>&1"
 	;;
       cmake)
-	# Transform autotools-like parameters to cmake-like.
-	# Remove "'".
-	CONFIGURATION=${CONFIGURATION//\'/""}
-	# Replace "-" with "_".
-	CONFIGURATION=${CONFIGURATION//-/"_"}
-	# Replace "__" with "-D".
-	CONFIGURATION=${CONFIGURATION//__/"-D"}
-	# To Upper Case.
-	CONFIGURATION=${CONFIGURATION^^}
-
-	# Add "=1" suffix to each variable.
-	IFS=' ' read -r  -a array <<< "$CONFIGURATION"
-
-	CONFIGURATION=""
-	for element in "${array[@]}"
-	do
-	    CONFIGURATION="$CONFIGURATION $element=1"
-	done
-
 	# MESOS-5433: `distcheck` is not supported.
 	# MESOS-5624: In source build is not supported.
 	append_dockerfile "CMD mkdir build && cd build && cmake $CONFIGURATION .. && make -j6 check"
