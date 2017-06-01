@@ -114,9 +114,7 @@ if (WIN32)
     string(APPEND ZLIB_LFLAG static)
   endif ()
   # Debug configuration
-  if (${CMAKE_BUILD_TYPE} MATCHES Debug)
-    string(APPEND ZLIB_LFLAG d)
-  endif ()
+  string(APPEND ZLIB_LFLAG $<$<CONFIG:Debug>:d>)
 
   # Windows requires Dbghelp.lib when linking to glog.
   # NOTE: CMake's dependency graph does not pull in the `Dbghelp` library
