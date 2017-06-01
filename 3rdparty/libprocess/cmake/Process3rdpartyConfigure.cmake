@@ -104,12 +104,8 @@ if (WIN32)
   # the library names are generated correctly.
   set(CURL_LFLAG     libcurl)
 
-  # Release configuration
   set(PROTOBUF_LFLAG libprotobuf)
-  # Debug configuration
-  if (${CMAKE_BUILD_TYPE} MATCHES Debug)
-    string(APPEND PROTOBUF_LFLAG d)
-  endif ()
+  string(APPEND PROTOBUF_LFLAG $<$<CONFIG:Debug>:d>)
 
   # Release configuration
   set(ZLIB_LFLAG zlib)
