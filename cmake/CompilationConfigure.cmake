@@ -220,8 +220,7 @@ if (WIN32)
 
   # COFF/PE and friends are somewhat limited in the number of sections they
   # allow for an object file. We use this to avoid those problems.
-  set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} /bigobj -DGOOGLE_GLOG_DLL_DECL= -DCURL_STATICLIB /vd2")
+  string(APPEND CMAKE_CXX_FLAGS " /bigobj -DGOOGLE_GLOG_DLL_DECL= /vd2")
 
   # Enable multi-threaded compilation.
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
