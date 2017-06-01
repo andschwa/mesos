@@ -348,18 +348,10 @@ elseif (WIN32)
   set(PROTOBUF_INSTALL_CMD ${CMAKE_NOOP})
 endif (NOT WIN32)
 
-# NOTE: An implicit consequence of the following code is that on non-Windows
-# platforms, gmock and gtest are assumed to be CMake projects, and are thus
-# configured and built using default CMake commands. The reason is that on
-# non-Windows platforms, we choose to set `GOOGLETEST_CONFIG_CMD` and
-# `GOOGLETEST_BUILD_CMD` with stub commands, which cause CMake to "fall back" to
-# trying to build them with CMake.
 ExternalProject_Add(
   ${GOOGLETEST_TARGET}
   PREFIX            ${GOOGLETEST_CMAKE_ROOT}
-  CMAKE_ARGS        -DBUILD_SHARED_LIBS=FALSE
-  CONFIGURE_COMMAND ${GOOGLETEST_CONFIG_CMD}
-  BUILD_COMMAND     ${GOOGLETEST_BUILD_CMD}
+  CMAKE_ARGS        ${CMAKE_FORWARD_ARGS}
   INSTALL_COMMAND   ${GOOGLETEST_INSTALL_CMD}
   URL               ${GOOGLETEST_URL}
   URL_HASH          ${GOOGLETEST_HASH}
