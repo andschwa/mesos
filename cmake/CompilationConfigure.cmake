@@ -214,20 +214,37 @@ string(COMPARE EQUAL ${CMAKE_SYSTEM_NAME} "Linux" LINUX)
 if (WIN32)
   # Speed up incremental linking for the VS compiler/linker, for more info, see:
   # https://blogs.msdn.microsoft.com/vcblog/2014/11/12/speeding-up-the-incremental-developer-build-scenario/
-  foreach(t EXE SHARED STATIC MODULE)
+  foreach (t EXE SHARED STATIC MODULE)
     string(APPEND CMAKE_${t}_LINKER_FLAGS_DEBUG " /debug:fastlink")
-  endforeach()
+  endforeach ()
 
   # COFF/PE and friends are somewhat limited in the number of sections they
   # allow for an object file. We use this to avoid those problems.
   string(APPEND CMAKE_CXX_FLAGS " /bigobj -DGOOGLE_GLOG_DLL_DECL= /vd2")
 
   # Enable multi-threaded compilation.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  string(APPEND CMAKE_CXX_FLAGS " /MP")
 
-  # Build against the multi-threaded, static version of the runtime library.
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  # Build against the multi-threaded, correct version of the runtime library.
+  if (${BUILD_SHARED_LIBS})
+    message(WARNING "Building with shared libraries is a work-in-progress.")
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    # Use dynamic CRT
+    set(CRT " /MD")
+  else ()
+    # Use static CRT
+    set(CRT " /MT")
+  endif ()
+  if ($(CMAKE_BUILD_TYPE) MATCHES Debug)
+    string(APPEND CRT "d")
+  endif ()
+  # NOTE: We APPEND ${CRT} rather than REPLACE so it gets picked up by dependencies.
+  foreach (l C CXX) # foreach language
+    string(APPEND CMAKE_${l}_FLAGS ${CRT})
+    foreach (c DEBUG RELEASE RELWITHDEBINFO MINSIZEREL) # foreach configuration
+      string(APPEND CMAKE_${l}_FLAGS_${c} ${CRT})
+    endforeach ()
+  endforeach ()
 
   # Convenience flags to simplify Windows support in C++ source; used to
   # `#ifdef` out some platform-specific parts of Mesos.  We choose to define
