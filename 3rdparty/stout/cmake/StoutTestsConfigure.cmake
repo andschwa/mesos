@@ -54,8 +54,8 @@ endif (WIN32)
 
 # Convenience variables for "lflags", the symbols we pass to CMake to generate
 # things like `-L/path/to/glog` or `-lglog`.
-set(GMOCK_LFLAG gmock)
-set(GTEST_LFLAG gtest)
+set(GMOCK_LFLAG gmock$<$<CONFIG:Debug>:d>)
+set(GTEST_LFLAG gtest$<$<CONFIG:Debug>:d>)
 
 # DEFINE PROCESS LIBRARY DEPENDENCIES. Tells the process library build targets
 # download/configure/build all third-party libraries before attempting to build.
