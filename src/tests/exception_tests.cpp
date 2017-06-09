@@ -58,6 +58,14 @@ namespace mesos {
 namespace internal {
 namespace tests {
 
+class SpeedTest : public mesos::internal::tests::MesosTest {};
+TEST_F(SpeedTest, Master)
+{
+  master::Flags masterFlags = CreateMasterFlags();
+  masterFlags.hostname = "myhost";
+  Try<Owned<cluster::Master>> master = StartMaster(masterFlags);
+  ASSERT_SOME(master);
+}
 
 class ExceptionTest : public MesosTest {};
 
