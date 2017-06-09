@@ -93,10 +93,8 @@ namespace tests {
   "rm " + path + " || (touch " + path + " && exit 1)"
 #else
 #define HEALTH_CHECK_COMMAND(path) \
-  "powershell -command " \
-  "$ri_err = Remove-Item -ErrorAction SilentlyContinue \"" + \
-  path + "\"; if (-not $?) { set-content -Path (\"" + path + \
-  "\") -Value ($null); exit 1 }"
+  "{ Remove-Item -ErrorAction SilentlyContinue \"" + path + "\"; " \
+  "if (-not $?) { Set-Content \"" + path + "\" $null; exit 1 } }"
 #endif // !__WINDOWS__
 
 

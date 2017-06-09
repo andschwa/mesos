@@ -145,9 +145,12 @@ TEST_F(OsTest, System)
   EXPECT_NE(0, os::system("exit 1"));
   EXPECT_NE(0, os::system("invalid.command"));
 
-  // Note that ::system returns 0 for the following two cases as well.
+#ifndef __WINDOWS__
+  // Note that ::system returns 0 for the following two cases as well,
+  // but not on Windows where we call `spawnlp` directly.
   EXPECT_EQ(0, os::system(""));
   EXPECT_EQ(0, os::system(" "));
+#endif // __WINDOWS__
 }
 
 

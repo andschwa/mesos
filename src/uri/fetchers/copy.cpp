@@ -102,7 +102,7 @@ Future<Nothing> CopyFetcherPlugin::fetch(
 #else // __WINDOWS__
   const char* copyCommand = os::Shell::name;
   const vector<string> argv =
-    {os::Shell::arg0, os::Shell::arg1, "copy", "/Y", uri.path(), directory};
+    {os::Shell::arg0, os::Shell::arg1, "Copy-Item", uri.path(), directory};
 #endif // __WINDOWS__
 
   Try<Subprocess> s = subprocess(

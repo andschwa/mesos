@@ -73,16 +73,11 @@ namespace tests {
 //   - Exit with a zero status.
 #ifndef __WINDOWS__
 #define FLAPPING_CHECK_COMMAND(path)                                    \
-  string("rm ") + path + " || (touch " + path + "; exit 1)"
+  "rm " + path + " || (touch " + path + "; exit 1)"
 #else
-#define FLAPPING_CHECK_COMMAND(path)                                    \
-  string("powershell -command ") +                                      \
-  "$ri_err = Remove-Item -ErrorAction SilentlyContinue"                 \
-    " \"" + path + "\";"                                                \
-  "if (-not $?) {"                                                      \
-  "  Set-Content -Path (\"" + path + "\") -Value ($null);"              \
-  "  exit 1"                                                            \
-  "}"
+#define FLAPPING_CHECK_COMMAND(path) \
+  "{ Remove-Item -ErrorAction SilentlyContinue \"" + path + "\"; " \
+  "if (-not $?) { Set-Content \"" + path + "\" $null; exit 1 } }"
 #endif // !__WINDOWS__
 
 
@@ -99,17 +94,12 @@ namespace tests {
 //   - Exit with a zero status.
 #ifndef __WINDOWS__
 #define STALLING_CHECK_COMMAND(path)                                    \
-  string("(ls ") + path + " && " + SLEEP_COMMAND(1000) +                \
+  "(ls " + path + " && " + "sleep 1000" +                \
   ") || (touch " + path + "; exit 1)"
 #else
 #define STALLING_CHECK_COMMAND(path)                                    \
-  string("powershell -command ") +                                      \
-  "if (Test-Path \"" + path + "\") {" +                                 \
-     SLEEP_COMMAND(1000) +                                              \
-  "} else {"                                                            \
-  "  Set-Content -Path (\"" + path + "\") -Value ($null);"              \
-  "  exit 1"                                                            \
-  "}"
+  "{ if (Test-Path \"" + path + "\") { Start-Sleep 1000 } "                \
+  "else { Set-Content \"" + path + "\" $null; exit 1 }"
 #endif // !__WINDOWS__
 
 

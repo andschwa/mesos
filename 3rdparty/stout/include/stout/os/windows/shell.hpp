@@ -31,9 +31,9 @@ namespace Shell {
   // `name` is the command name, `arg0` is the first argument received
   // by the callee, usually the command name and `arg1` is the second
   // command argument received by the callee.
-  constexpr const char* name = "cmd.exe";
-  constexpr const char* arg0 = "cmd";
-  constexpr const char* arg1 = "/c";
+  constexpr const char* name = "powershell.exe";
+  constexpr const char* arg0 = "powershell";
+  constexpr const char* arg1 = "-c";
 
 } // namespace Shell {
 
@@ -96,7 +96,7 @@ Try<std::string> shell(const std::string& fmt, const T&... t)
 }
 
 
-// Executes a command by calling "cmd /c <command>", and returns
+// Executes a command by calling "powershell -c <command>", and returns
 // after the command has been completed. Returns 0 if succeeds, and
 // return -1 on error.
 //
