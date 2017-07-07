@@ -97,12 +97,11 @@ int main(int argc, char** argv)
   // Initialize Google Mock/Test.
   testing::InitGoogleMock(&argc, argv);
 
-#ifndef __WINDOWS__
   // Install glog's signal handler.
   // NOTE: this function is declared but not defined on Windows, so if we
   // attempt to compile this on Windows, we get a linker error.
   google::InstallFailureSignalHandler();
-#else
+#ifdef __WINDOWS__
   if (!net::wsa_initialize()) {
     EXIT(EXIT_FAILURE) << "WSA failed to initialize";
   }

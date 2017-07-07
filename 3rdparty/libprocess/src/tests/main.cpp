@@ -85,12 +85,10 @@ int main(int argc, char** argv)
       process::READWRITE_HTTP_AUTHENTICATION_REALM,
       process::READONLY_HTTP_AUTHENTICATION_REALM);
 
-  // NOTE: Windows does not support signal semantics required for these
-  // handlers to be useful.
-#ifndef __WINDOWS__
   // Install GLOG's signal handler.
   google::InstallFailureSignalHandler();
 
+#ifndef __WINDOWS__
   // We reset the GLOG's signal handler for SIGTERM because
   // 'SubprocessTest.Status' sends SIGTERM to a subprocess which
   // results in a stack trace otherwise.

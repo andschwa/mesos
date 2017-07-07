@@ -200,12 +200,11 @@ void initialize(
     (flags.log_dir.isSome() ? flags.log_dir.get() : "STDERR");
 
   if (installFailureSignalHandler) {
-  // glog on Windows does not support `InstallFailureSignalHandler`.
-#ifndef __WINDOWS__
     // Handles SIGSEGV, SIGILL, SIGFPE, SIGABRT, SIGBUS, SIGTERM
     // by default.
     google::InstallFailureSignalHandler();
 
+#ifndef __WINDOWS__
     // Set up our custom signal handlers.
     //
     // NOTE: The code below sets the SIGTERM signal handler to the `handle`
