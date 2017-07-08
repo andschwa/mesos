@@ -13,6 +13,14 @@
 #ifndef __STOUT_WINDOWS_HPP__
 #define __STOUT_WINDOWS_HPP__
 
+// We include `Winsock2.h` before `Windows.h` explicitly to avoid symbold
+// re-definitions. This is a known pattern in the windows community.
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include <mswsock.h>
+#include <winioctl.h>
+
 #include <direct.h>   // For `_mkdir`.
 #include <errno.h>    // For `_set_errno`.
 #include <fcntl.h>    // For file access flags like `_O_CREAT`.
@@ -20,16 +28,11 @@
 #include <process.h>  // For `_getpid`.
 #include <stdlib.h>   // For `_PATH_MAX`.
 
+#include <windows.h>
+
 #include <sys/stat.h> // For permissions flags.
 
-#include <BaseTsd.h>  // For `SSIZE_T`.
-// We include `Winsock2.h` before `Windows.h` explicitly to avoid symbold
-// re-definitions. This is a known pattern in the windows community.
-#include <WS2tcpip.h>
-#include <Winsock2.h>
-#include <mswsock.h>
-#include <winioctl.h>
-#include <Windows.h>
+#include <basetsd.h>  // For `SSIZE_T`.
 
 #include <memory>
 

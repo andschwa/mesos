@@ -34,9 +34,7 @@
 // Note: Header grouping and ordering is considered before
 // inclusion/exclusion by platform.
 // For 'inet_pton', 'inet_ntop'.
-#ifdef __WINDOWS__
-#include <Ws2tcpip.h>
-#else
+#ifndef __WINDOWS__
 #include <netinet/in.h>
 #include <sys/socket.h>
 #endif // __WINDOWS__
@@ -66,6 +64,7 @@
 #include <stout/unreachable.hpp>
 
 #ifdef __WINDOWS__
+// requires <ws2tcpip.h>
 #include <stout/windows.hpp>
 #endif // __WINDOWS__
 

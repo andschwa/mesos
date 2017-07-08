@@ -13,9 +13,6 @@
 #ifndef __STOUT_WINDOWS_IP_HPP__
 #define __STOUT_WINDOWS_IP_HPP__
 
-#include <iphlpapi.h>
-#pragma comment(lib, "IPHLPAPI.lib")
-
 #include <string>
 
 #include <stout/error.hpp>
@@ -23,6 +20,8 @@
 #include <stout/none.hpp>
 #include <stout/result.hpp>
 #include <stout/try.hpp>
+
+// requires <iphlpapi.h>
 #include <stout/windows.hpp>
 
 

@@ -13,12 +13,6 @@
 #ifndef __STOUT_WINDOWS_OS_HPP__
 #define __STOUT_WINDOWS_OS_HPP__
 
-#include <direct.h>
-#include <io.h>
-#include <Psapi.h>
-#include <TlHelp32.h>
-#include <Userenv.h>
-
 #include <sys/utime.h>
 
 #include <list>
@@ -45,6 +39,12 @@
 
 #include <stout/os/raw/environment.hpp>
 #include <stout/os/windows/fd.hpp>
+
+#include <direct.h>
+#include <io.h>
+#include <Psapi.h>
+#include <TlHelp32.h>
+#include <Userenv.h>
 
 namespace os {
 namespace internal {

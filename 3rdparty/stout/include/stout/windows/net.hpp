@@ -13,9 +13,6 @@
 #ifndef __STOUT_WINDOWS_NET_HPP__
 #define __STOUT_WINDOWS_NET_HPP__
 
-#include <iphlpapi.h>
-#pragma comment(lib, "IPHLPAPI.lib")
-
 #include <set>
 #include <string>
 #include <vector>
@@ -25,6 +22,8 @@
 #include <stout/nothing.hpp>
 #include <stout/stringify.hpp>
 #include <stout/try.hpp>
+
+// requires <iphlpapi.h>
 #include <stout/windows.hpp>
 #include <stout/windows/os.hpp>
 

@@ -29,12 +29,13 @@
 #include <stout/os.hpp>
 #include <stout/os/shell.hpp>
 #include <stout/try.hpp>
+// requires <userenv.h>
 #include <stout/windows.hpp>
+#include <userenv.h>
 
 #include <stout/os/close.hpp>
 #include <stout/os/environment.hpp>
 
-#include <userEnv.h>
 
 namespace process {
 namespace internal {

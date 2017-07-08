@@ -97,6 +97,7 @@ if (WIN32)
   set(STOUT_LIBS
     ${STOUT_LIBS}
     ${ZLIB_LFLAG}
+    iphlpapi
     ws2_32
     Mswsock
     Secur32
