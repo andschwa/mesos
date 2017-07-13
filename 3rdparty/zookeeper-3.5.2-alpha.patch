@@ -132,7 +132,7 @@ index 000000000..7ac88352b
 +check_struct_has_member("struct sockaddr_in6" sin6_addr "netinet/in.h" ZOO_IPV6_ENABLED)
 +
 +# configure
-+configure_file(cmake_config.h.in config.h)
++configure_file(cmake_config.h.in ${CMAKE_SOURCE_DIR}/include/config.h)
 +
 +# hashtable library
 +set(hashtable_sources src/hashtable/hashtable_itr.c src/hashtable/hashtable.c)

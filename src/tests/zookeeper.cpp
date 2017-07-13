@@ -55,7 +55,7 @@ void ZooKeeperTest::SetUpTestCase()
 {
   if (!Jvm::created()) {
     string zkHome =
-      path::join(flags.build_dir, "/3rdparty/zookeeper-" ZOOKEEPER_VERSION);
+      path::join(flags.build_dir, "3rdparty/zookeeper-3.5.2-alpha/src/zookeeper-3.5.2-alpha");
 
     string classpath = "-Djava.class.path=" +
       path::join(zkHome, "zookeeper-" ZOOKEEPER_VERSION ".jar");
