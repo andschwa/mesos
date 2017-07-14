@@ -42,7 +42,8 @@ struct JNI
     v_1_1 = JNI_VERSION_1_1,
     v_1_2 = JNI_VERSION_1_2,
     v_1_4 = JNI_VERSION_1_4,
-    v_1_6 = JNI_VERSION_1_6
+    v_1_6 = JNI_VERSION_1_6,
+    v_1_8 = JNI_VERSION_1_8
   };
 };
 
@@ -73,7 +74,7 @@ public:
   // be specified. Ditto for and non '-X' options.
   static Try<Jvm*> create(
       const std::vector<std::string>& options = std::vector<std::string>(),
-      JNI::Version version = JNI::v_1_6,
+      JNI::Version version = JNI::v_1_8,
       bool exceptions = false);
 
   // Returns true if the JVM has already been created.
