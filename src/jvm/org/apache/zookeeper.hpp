@@ -65,24 +65,8 @@ extern const char ZOOKEEPERSERVER_SESSIONTRACKER[];
 class ZooKeeperServer : public Jvm::Object
 {
 public:
-  class DataTreeBuilder : public Jvm::Object {};
-
-  class BasicDataTreeBuilder : public DataTreeBuilder
-  {
-  public:
-    BasicDataTreeBuilder()
-    {
-      static Jvm::Constructor constructor = Jvm::get()->findConstructor(
-          Jvm::Class::named(
-              "org/apache/zookeeper/server/ZooKeeperServer$BasicDataTreeBuilder") // NOLINT(whitespace/line_length)
-          .constructor());
-
-      object = Jvm::get()->invoke(constructor);
-    }
-  };
-
   ZooKeeperServer(const persistence::FileTxnSnapLog& txnLogFactory,
-                  const DataTreeBuilder& treeBuilder)
+                  int ticktime)
     : sessionTracker(
         Jvm::Class::named("org/apache/zookeeper/server/ZooKeeperServer"))
   {
@@ -92,12 +76,10 @@ public:
         .parameter(
             Jvm::Class::named(
                 "org/apache/zookeeper/server/persistence/FileTxnSnapLog"))
-        .parameter(
-            Jvm::Class::named(
-                "org/apache/zookeeper/server/ZooKeeperServer$DataTreeBuilder"))); // NOLINT(whitespace/line_length)
+        .parameter(Jvm::get()->intClass));
 
     object = Jvm::get()->invoke(
-        constructor, (jobject) txnLogFactory, (jobject) treeBuilder);
+        constructor, (jobject) txnLogFactory, ticktime);
 
     // We need to "bind" the 'sessionTracker' Variable after we assign
     // 'object' above so that '*this' is a Jvm::Object instance that

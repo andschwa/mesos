@@ -35,7 +35,6 @@ import org.apache.mesos.Protos.*;
 
 import org.apache.zookeeper.server.NIOServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
-import org.apache.zookeeper.server.ZooKeeperServer.BasicDataTreeBuilder;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 
 
@@ -78,8 +77,7 @@ public class TestLog {
       File snapFile = new File(logdir, "zookeeper_snap").getAbsoluteFile();
 
       server = new ZooKeeperServer(
-          new FileTxnSnapLog(dataFile, snapFile),
-          new BasicDataTreeBuilder());
+          new FileTxnSnapLog(dataFile, snapFile), 3000);
 
       connection = new NIOServerCnxnFactory();
       connection.configure(new InetSocketAddress(port), maxconnections);

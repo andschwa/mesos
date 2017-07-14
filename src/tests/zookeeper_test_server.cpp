@@ -55,8 +55,7 @@ ZooKeeperTestServer::ZooKeeperTestServer()
   snapDir.deleteOnExit();
 
   zooKeeperServer = new ZooKeeperServer(
-      FileTxnSnapLog(dataDir, snapDir),
-      ZooKeeperServer::BasicDataTreeBuilder());
+      FileTxnSnapLog(dataDir, snapDir), 3000);
 }
 
 
