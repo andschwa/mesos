@@ -628,7 +628,9 @@ Result<Group::Membership> GroupProcess::doJoin(
 
   // Save the sequence number but only grab the basename. Example:
   // "/path/to/znode/label_0000000131" => "0000000131".
-  const string basename = Path(result).basename();
+
+  size_t start = result.find_last_of("/");
+  const string basename = result.substr(start + 1);
 
   // Strip the label before grabbing the sequence number.
   const string node = label.isSome()

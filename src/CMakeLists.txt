@@ -190,7 +190,7 @@ if (HAS_JAVA)
   # This generates the header files.
   add_custom_command(
     OUTPUT ${JAVA_H}
-    COMMAND ${Java_JAVAH_EXECUTABLE} -d java/jni -classpath ${MESOS_JAR}:${PROTOBUF_JAR} ${JAVA_CLASSES}
+    COMMAND ${Java_JAVAH_EXECUTABLE} -v -d java/jni -classpath "${MESOS_JAR};${PROTOBUF_JAR}" ${JAVA_CLASSES}
     DEPENDS mesos-jar make_bin_jni_dir)
   # We include the headers here to establish the dependency on the above custom command.
   add_library(mesos-java ${MESOS_DEFAULT_LIBRARY_LINKAGE} ${JAVA_SRC} ${JAVA_H})
