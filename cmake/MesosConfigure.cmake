@@ -86,6 +86,11 @@ add_custom_target(
   DEPENDS make_bin_src_dir
   COMMAND ${CMAKE_COMMAND} -E make_directory ${MESOS_BIN_SRC_DIR}/java/jni)
 
+add_custom_target(
+  make_bin_python_dir ALL
+  DEPENDS make_bin_src_dir
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${MESOS_BIN_SRC_DIR}/python/interface/src)
+
 # MESOS SCRIPT CONFIGURATION.
 #############################
 # Define variables required to configure these scripts,

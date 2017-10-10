@@ -21,8 +21,8 @@ include(MesosProtobuf)
 # Build the protobuf structs.
 #
 # NOTE: `PROTOC_GENERATE` will list append to `PUBLIC_PROTOBUF_SRC`,
-# `INTERNAL_PROTOBUF_SRC`, and/or `JAVA_PROTOBUF_SRC` depending on the
-# `INTERNAL` and `JAVA` options.
+# `INTERNAL_PROTOBUF_SRC`, and/or `JAVA_PROTOBUF_SRC`/`PYTHON_PROTOBUF_SRC`
+# depending on the `INTERNAL` and `JAVA`/`PYTHON` options.
 set(PUBLIC_PROTOBUF_SRC "")
 PROTOC_GENERATE(TARGET mesos/agent/agent)
 PROTOC_GENERATE(TARGET mesos/allocator/allocator)
@@ -45,21 +45,22 @@ PROTOC_GENERATE(TARGET mesos/slave/oversubscription)
 PROTOC_GENERATE(TARGET mesos/state/state)
 PROTOC_GENERATE(TARGET mesos/uri/uri)
 
-# NOTE: The JAVA option is a noop if Java is disabled.
+# NOTE: The JAVA and PYTHON options are noops if Java or Python are disabled.
 set(JAVA_PROTOBUF_SRC "")
-PROTOC_GENERATE(JAVA TARGET mesos/executor/executor)
-PROTOC_GENERATE(JAVA TARGET mesos/fetcher/fetcher)
-PROTOC_GENERATE(JAVA TARGET mesos/mesos)
-PROTOC_GENERATE(JAVA TARGET mesos/scheduler/scheduler)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/agent/agent)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/allocator/allocator)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/executor/executor)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/maintenance/maintenance)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/master/master)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/mesos)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/quota/quota)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/resource_provider/resource_provider)
-PROTOC_GENERATE(JAVA TARGET mesos/v1/scheduler/scheduler)
+set(PYTHON_PROTOBUF_SRC "")
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/executor/executor)
+PROTOC_GENERATE(JAVA TARGET mesos/fetcher/fetcher) # not included for Python
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/mesos)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/scheduler/scheduler)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/agent/agent)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/allocator/allocator)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/executor/executor)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/maintenance/maintenance)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/master/master)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/mesos)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/quota/quota)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/resource_provider/resource_provider)
+PROTOC_GENERATE(JAVA PYTHON TARGET mesos/v1/scheduler/scheduler)
 
 set(INTERNAL_PROTOBUF_SRC "")
 PROTOC_GENERATE(INTERNAL TARGET messages/flags)
@@ -232,6 +233,13 @@ if (HAS_JAVA)
     ${JNI_INCLUDE_DIRS}
     ${CMAKE_CURRENT_BINARY_DIR}/java/jni
     ${MESOS_PUBLIC_INCLUDE_DIR})
+endif ()
+
+
+# BUILD PYTHON ARTIFACTS.
+#########################
+if (HAS_PYTHON)
+  add_custom_target(python-protobuf DEPENDS ${PYTHON_PROTOBUF_SRC})
 endif ()
 
 

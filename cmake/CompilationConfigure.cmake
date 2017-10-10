@@ -114,6 +114,15 @@ if (ENABLE_JAVA)
   endif ()
 endif ()
 
+option(ENABLE_PYTHON
+  "Build Python components."
+  TRUE)
+
+if (ENABLE_PYTHON)
+  # TODO: Look for Python
+  set(HAS_PYTHON ON)
+endif ()
+
 # If 'REBUNDLED' is set to FALSE, this will cause Mesos to build against the
 # specified dependency repository. This is especially useful for Windows
 # builds, because building on MSVC 1900 requires newer versions of some
