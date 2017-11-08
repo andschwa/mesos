@@ -722,6 +722,12 @@ list(APPEND GOOGLETEST_CMAKE_FORWARD_ARGS -DBUILD_SHARED_LIBS=OFF)
 list(APPEND GOOGLETEST_CMAKE_FORWARD_ARGS
   -Dgtest_force_shared_crt=${BUILD_SHARED_LIBS})
 
+# Silence new deprecation warning in Visual Studio 15.5.
+# NOTE: This has been patched upstream, but we don't patch Google Test.
+# https://github.com/google/googletest/issues/1111
+list(APPEND GOOGLETEST_CMAKE_FORWARD_ARGS
+  -DCMAKE_CXX_FLAGS=/D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING)
+
 ExternalProject_Add(
   ${GOOGLETEST_TARGET}
   PREFIX            ${GOOGLETEST_CMAKE_ROOT}
