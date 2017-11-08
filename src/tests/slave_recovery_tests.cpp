@@ -14,7 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef __WINDOWS__
 #include <unistd.h>
+#endif // __WINDOWS__
 
 #include <string>
 
@@ -44,6 +46,8 @@
 #include <stout/os.hpp>
 #include <stout/path.hpp>
 #include <stout/uuid.hpp>
+
+#include <stout/os/killtree.hpp>
 
 #include "common/protobuf_utils.hpp"
 
@@ -219,7 +223,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverSlaveState)
 
   SlaveID slaveId = offers.get()[0].slave_id();
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   // Scheduler expectations.
   EXPECT_CALL(sched, statusUpdate(_, _))
@@ -390,7 +394,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverTaskStatusUpdateManager)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   // Message expectations.
   Future<Message> registerExecutor =
@@ -478,7 +482,7 @@ TYPED_TEST(SlaveRecoveryTest, DISABLED_ReconnectHTTPExecutor)
   ASSERT_FALSE(offers->empty());
 
   // Launch a task with the HTTP based command executor.
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   Future<v1::executor::Call> updateCall =
     DROP_HTTP_CALL(Call(), Call::UPDATE, _, ContentType::PROTOBUF);
@@ -607,10 +611,10 @@ TYPED_TEST(SlaveRecoveryTest, DISABLED_ROOT_CGROUPS_ReconnectDefaultExecutor)
   const SlaveID slaveId = devolve(offer.agent_id());
 
   v1::TaskInfo taskInfo1 =
-    evolve(createTask(slaveId, resources, "sleep 1000"));
+    evolve(createTask(slaveId, resources, SLEEP_COMMAND(1000)));
 
   v1::TaskInfo taskInfo2 =
-    evolve(createTask(slaveId, resources, "sleep 1000"));
+    evolve(createTask(slaveId, resources, SLEEP_COMMAND(1000)));
 
   v1::TaskGroupInfo taskGroup;
   taskGroup.add_tasks()->CopyFrom(taskInfo1);
@@ -752,7 +756,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconnectExecutor)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   // Drop the status updates from the executor.
   // We actually wait until we can drop the TASK_RUNNING update here
@@ -854,7 +858,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconnectExecutorRetry)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   // Pause the clock to ensure the agent does not retry the
   // status update. We will ensure the acknowledgement is
@@ -973,7 +977,7 @@ TYPED_TEST(SlaveRecoveryTest, PingTimeoutDuringRecovery)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   Future<TaskStatus> statusUpdate0;
   Future<TaskStatus> statusUpdate1;
@@ -1121,7 +1125,7 @@ TYPED_TEST(SlaveRecoveryTest, DISABLED_RecoverUnregisteredHTTPExecutor)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   // Drop the executor subscribe message.
   Future<v1::executor::Call> subscribeCall =
@@ -1233,7 +1237,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverUnregisteredExecutor)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   // Drop the executor registration message.
   Future<Message> registerExecutor =
@@ -1347,7 +1351,7 @@ TYPED_TEST(SlaveRecoveryTest, KillQueuedTaskDuringExecutorRegistration)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   // Drop the executor registration message so that the task stays
   // queued on the agent
@@ -1451,7 +1455,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverTerminatedHTTPExecutor)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   EXPECT_CALL(sched, statusUpdate(_, _))
     .WillRepeatedly(Return()); // Allow any number of subsequent status updates.
@@ -1597,7 +1601,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverTerminatedExecutor)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   Future<Message> registerExecutor =
     FUTURE_MESSAGE(Eq(RegisterExecutorMessage().GetTypeName()), _, _);
@@ -1745,7 +1749,7 @@ TYPED_TEST(SlaveRecoveryTest, DISABLED_RecoveryTimeout)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   EXPECT_CALL(sched, statusUpdate(_, _));
 
@@ -1972,7 +1976,7 @@ TYPED_TEST(SlaveRecoveryTest, DISABLED_CleanupHTTPExecutor)
   ASSERT_FALSE(offers->empty());
 
   // Launch a task with the HTTP based command executor.
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   Future<v1::executor::Call> updateCall =
     DROP_HTTP_CALL(Call(), Call::UPDATE, _, ContentType::PROTOBUF);
@@ -2087,7 +2091,7 @@ TYPED_TEST(SlaveRecoveryTest, CleanupExecutor)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   // Expect TASK_STARTING and TASK_RUNNING updates
   EXPECT_CALL(sched, statusUpdate(_, _))
@@ -2216,13 +2220,15 @@ TYPED_TEST(SlaveRecoveryTest, RemoveNonCheckpointingFramework)
   Resources resources1 = allocatedResources(
       Resources::parse("cpus:1;mem:512").get(), frameworkInfo.roles(0));
   offer1.mutable_resources()->CopyFrom(resources1);
-  tasks.push_back(createTask(offer1, "sleep 1000")); // Long-running task.
+  // Long-running task.
+  tasks.push_back(createTask(offer1, SLEEP_COMMAND(1000)));
 
   Offer offer2 = offer;
   Resources resources2 = allocatedResources(
       Resources::parse("cpus:1;mem:512").get(), frameworkInfo.roles(0));
   offer2.mutable_resources()->CopyFrom(resources2);
-  tasks.push_back(createTask(offer2, "sleep 1000")); // Long-running task,
+  // Long-running task.
+  tasks.push_back(createTask(offer2, SLEEP_COMMAND(1000)));
 
   ASSERT_TRUE(Resources(offer.resources()).contains(
         Resources(offer1.resources()) +
@@ -2329,7 +2335,7 @@ TYPED_TEST(SlaveRecoveryTest, NonCheckpointingFramework)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   Future<Nothing> update;
   EXPECT_CALL(sched, statusUpdate(_, _))
@@ -2427,7 +2433,7 @@ TYPED_TEST(SlaveRecoveryTest, DISABLED_KillTaskWithHTTPExecutor)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   EXPECT_CALL(sched, statusUpdate(_, _));
 
@@ -2542,7 +2548,7 @@ TYPED_TEST(SlaveRecoveryTest, KillTask)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   // Expect a TASK_STARTING and a TASK_RUNNING update
   EXPECT_CALL(sched, statusUpdate(_, _))
@@ -2666,7 +2672,7 @@ TYPED_TEST(SlaveRecoveryTest, Reboot)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   // Capture the slave and framework ids.
   SlaveID slaveId1 = offers1.get()[0].slave_id();
@@ -3040,7 +3046,7 @@ TYPED_TEST(SlaveRecoveryTest, GCExecutor)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   // Capture the slave and framework ids.
   SlaveID slaveId = offers1.get()[0].slave_id();
@@ -3177,7 +3183,7 @@ TYPED_TEST(SlaveRecoveryTest, ShutdownSlave)
 
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   Future<Nothing> statusUpdate1, statusUpdate2;
   EXPECT_CALL(sched, statusUpdate(_, _))
@@ -3245,6 +3251,7 @@ TYPED_TEST(SlaveRecoveryTest, ShutdownSlave)
 }
 
 
+#ifndef __WINDOWS__
 // The slave should shutdown when it receives a SIGUSR1 signal.
 TYPED_TEST(SlaveRecoveryTest, ShutdownSlaveSIGUSR1)
 {
@@ -3286,7 +3293,7 @@ TYPED_TEST(SlaveRecoveryTest, ShutdownSlaveSIGUSR1)
 
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   Future<TaskStatus> statusStarting, statusRunning;
   EXPECT_CALL(sched, statusUpdate(_, _))
@@ -3343,6 +3350,7 @@ TYPED_TEST(SlaveRecoveryTest, ShutdownSlaveSIGUSR1)
   driver.stop();
   driver.join();
 }
+#endif // __WINDOWS__
 
 
 // The slave fails to do recovery and tries to register as a new slave. The
@@ -3397,7 +3405,7 @@ TYPED_TEST(SlaveRecoveryTest, RegisterDisconnectedSlave)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   // Capture the slave and framework ids.
   SlaveID slaveId = offers.get()[0].slave_id();
@@ -3527,7 +3535,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconcileKillTask)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   // Capture the slave and framework ids.
   SlaveID slaveId = offers1.get()[0].slave_id();
@@ -3647,7 +3655,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconcileShutdownFramework)
   Future<Nothing> _statusUpdateAcknowledgement2 =
     FUTURE_DISPATCH(_, &Slave::_statusUpdateAcknowledgement);
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   driver.launchTasks(offers.get()[0].id(), {task});
 
@@ -3966,7 +3974,7 @@ TYPED_TEST(SlaveRecoveryTest, SchedulerFailover)
   ASSERT_FALSE(offers1->empty());
 
   // Create a long running task.
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   // Expecting TASK_STARTING and TASK_RUNNING updates
   EXPECT_CALL(sched1, statusUpdate(_, _))
@@ -4125,7 +4133,7 @@ TYPED_TEST(SlaveRecoveryTest, MasterFailover)
   AWAIT_READY(offers1);
   ASSERT_FALSE(offers1->empty());
 
-  TaskInfo task = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   EXPECT_CALL(sched, statusUpdate(_, _))
     .Times(2); // TASK_STARTING and TASK_RUNNING
@@ -4272,7 +4280,7 @@ TYPED_TEST(SlaveRecoveryTest, MultipleFrameworks)
       Resources::parse("cpus:1;mem:512").get());
 
   // Framework 1 launches a task.
-  TaskInfo task1 = createTask(offer1, "sleep 1000");
+  TaskInfo task1 = createTask(offer1, SLEEP_COMMAND(1000));
 
   EXPECT_CALL(sched1, statusUpdate(_, _))
     .Times(2);
@@ -4310,7 +4318,7 @@ TYPED_TEST(SlaveRecoveryTest, MultipleFrameworks)
   ASSERT_FALSE(offers2->empty());
 
   // Framework 2 launches a task.
-  TaskInfo task2 = createTask(offers2.get()[0], "sleep 1000");
+  TaskInfo task2 = createTask(offers2.get()[0], SLEEP_COMMAND(1000));
 
   EXPECT_CALL(sched2, statusUpdate(_, _))
     .Times(2);
@@ -4447,7 +4455,7 @@ TYPED_TEST(SlaveRecoveryTest, MultipleSlaves)
   ASSERT_FALSE(offers1->empty());
 
   // Launch a long running task in the first slave.
-  TaskInfo task1 = createTask(offers1.get()[0], "sleep 1000");
+  TaskInfo task1 = createTask(offers1.get()[0], SLEEP_COMMAND(1000));
 
   EXPECT_CALL(sched, statusUpdate(_, _))
     .Times(2);
@@ -4487,7 +4495,7 @@ TYPED_TEST(SlaveRecoveryTest, MultipleSlaves)
   ASSERT_FALSE(offers2->empty());
 
   // Launch a long running task in each slave.
-  TaskInfo task2 = createTask(offers2.get()[0], "sleep 1000");
+  TaskInfo task2 = createTask(offers2.get()[0], SLEEP_COMMAND(1000));
 
   EXPECT_CALL(sched, statusUpdate(_, _))
     .Times(2);
@@ -4620,7 +4628,7 @@ TYPED_TEST(SlaveRecoveryTest, RestartBeforeContainerizerLaunch)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   // Expect the launch but don't do anything.
   Future<Nothing> launch;
@@ -5064,7 +5072,7 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, ResourceStatistics)
   AWAIT_READY(offers);
   ASSERT_FALSE(offers->empty());
 
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
 
   // Message expectations.
   Future<Message> registerExecutor =
@@ -5172,7 +5180,7 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceForward)
   SlaveID slaveId = offers1.get()[0].slave_id();
 
   TaskInfo task1 = createTask(
-      slaveId, Resources::parse("cpus:0.5;mem:128").get(), "sleep 1000");
+      slaveId, Resources::parse("cpus:0.5;mem:128").get(), SLEEP_COMMAND(1000));
 
   // Message expectations.
   Future<Message> registerExecutorMessage =
@@ -5276,7 +5284,7 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceBackward)
   SlaveID slaveId = offers1.get()[0].slave_id();
 
   TaskInfo task1 = createTask(
-      slaveId, Resources::parse("cpus:0.5;mem:128").get(), "sleep 1000");
+      slaveId, Resources::parse("cpus:0.5;mem:128").get(), SLEEP_COMMAND(1000));
 
   // Message expectations.
   Future<Message> registerExecutorMessage =
