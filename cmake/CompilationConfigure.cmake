@@ -285,6 +285,11 @@ if (WIN32)
   else ()
     # Use static CRT.
     set(CRT " /MT")
+
+    # Use static version of OpenSSL.
+    if (ENABLE_SSL)
+      set(OPENSSL_USE_STATIC_LIBS TRUE)
+    endif ()
   endif ()
 
   if (ENABLE_SSL)
