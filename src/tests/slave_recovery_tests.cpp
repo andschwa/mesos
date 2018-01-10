@@ -3863,6 +3863,11 @@ TYPED_TEST(SlaveRecoveryTest, ReconcileTasksMissingFromSlave)
 
   ASSERT_SOME(os::killtree(runState.forkedPid.get(), SIGKILL));
 
+  // Reset the slave so that the task status update stream destructors are
+  // called. This is necessary so that file handles are closed before we remove
+  // the framework meta directory (specifically for `task.updates`).
+  slave->reset();
+
   // Remove the framework meta directory, so that the slave will not
   // recover the task.
   ASSERT_SOME(os::rmdir(frameworkPath, true));
