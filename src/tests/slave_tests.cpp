@@ -6908,10 +6908,7 @@ TEST_F(SlaveTest, RunTaskGroupGenerateSecretAfterShutdown)
 // be able to re-subscribe successfully when the agent is restarted with
 // required HTTP executor authentication.
 //
-// TODO(andschwa): Enable this test after fixing MESOS-7604.
-TEST_F(
-    SlaveTest,
-    RestartSlaveRequireExecutorAuthentication)
+TEST_F(SlaveTest, RestartSlaveRequireExecutorAuthentication)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
