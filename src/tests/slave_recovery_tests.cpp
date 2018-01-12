@@ -3796,7 +3796,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconcileTasksMissingFromSlave)
   // Start a task on the slave so that the master has knowledge of it.
   // We'll ensure the slave does not have this task when it
   // re-registers by wiping the relevant meta directory.
-  TaskInfo task = createTask(offers1.get()[0], "sleep 10");
+  TaskInfo task = createTask(offers1.get()[0], SLEEP_COMMAND(10));
 
   Future<TaskStatus> starting;
   Future<TaskStatus> running;
@@ -4092,7 +4092,9 @@ TYPED_TEST(SlaveRecoveryTest, SchedulerFailover)
 // This test verifies that if the master changes when the slave is
 // down, the slave can still recover the task when it restarts. We
 // verify its correctness by killing the task from the scheduler.
-TYPED_TEST(SlaveRecoveryTest, MasterFailover)
+//
+// TODO(andschwa): Enabled when replicated log is supported (MESOS-5932).
+TYPED_TEST_TEMP_DISABLED_ON_WINDOWS(SlaveRecoveryTest, MasterFailover)
 {
   // Step 1. Run a task.
   master::Flags masterFlags = this->CreateMasterFlags();
@@ -4440,9 +4442,11 @@ TYPED_TEST(SlaveRecoveryTest, MultipleSlaves)
   // Start the first slave.
   slave::Flags flags1 = this->CreateSlaveFlags();
 
+#ifndef __WINDOWS__
   // NOTE: We cannot run multiple slaves simultaneously on a host if
   // cgroups isolation is involved.
   flags1.isolation = "filesystem/posix,posix/mem,posix/cpu";
+#endif // !__WINDOWS__
 
   Fetcher fetcher(flags1);
 
@@ -4484,9 +4488,11 @@ TYPED_TEST(SlaveRecoveryTest, MultipleSlaves)
   // Start the second slave.
   slave::Flags flags2 = this->CreateSlaveFlags();
 
+#ifndef __WINDOWS__
   // NOTE: We cannot run multiple slaves simultaneously on a host if
   // cgroups isolation is involved.
   flags2.isolation = "filesystem/posix,posix/mem,posix/cpu";
+#endif // !__WINDOWS__
 
   Try<TypeParam*> _containerizer2 = TypeParam::create(flags2, true, &fetcher);
   ASSERT_SOME(_containerizer2);
@@ -4718,6 +4724,13 @@ TYPED_TEST(SlaveRecoveryTest, AgentReconfigurationWithRunningTask)
 
   // Start a slave.
   slave::Flags flags = this->CreateSlaveFlags();
+
+  // NOTE: These tests will start with "zero" memory, and the default Windows
+  // memory will enforce this, causing the task to crash. The default POSIX
+  // isolators don't actually perform isolation, and so this does not occur.
+  // However, these tests are not testing isolation, they're testing resource
+  // accounting, so we can just use "no" isolators.
+  flags.isolation = "";
   flags.resources = "cpus:5;mem:0;disk:0;ports:0";
 
   Fetcher fetcher(flags);
@@ -4742,7 +4755,7 @@ TYPED_TEST(SlaveRecoveryTest, AgentReconfigurationWithRunningTask)
 
   SlaveID slaveId = offers1.get()[0].slave_id();
   TaskInfo task = createTask(
-      slaveId, Resources::parse("cpus:3").get(), "sleep 1000");
+      slaveId, Resources::parse("cpus:3").get(), SLEEP_COMMAND(1000));
 
   Future<TaskStatus> statusStarting;
   Future<TaskStatus> statusRunning;

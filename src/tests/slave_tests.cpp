@@ -5604,8 +5604,6 @@ TEST_F(SlaveTest, HTTPSchedulerLiveUpgrade)
 // Ensures that the slave can restart when there is an empty
 // framework pid. Executor messages should go through the
 // master (instead of directly to the scheduler!).
-//
-// TODO(andschwa): Enable when executor reregistration works on Windows.
 TEST_F(SlaveTest, HTTPSchedulerSlaveRestart)
 {
   Try<Owned<cluster::Master>> master = this->StartMaster();
@@ -8260,8 +8258,6 @@ TEST_F(SlaveTest, DisconnectedExecutorDropsMessages)
 
 // This test verifies that the 'executor_reregistration_timeout' agent flag
 // successfully extends the timeout within which an executor can re-register.
-//
-// TODO(andschwa): Enable when executor reregistration works on Windows.
 TEST_F(SlaveTest, ExecutorReregistrationTimeoutFlag)
 {
   Clock::pause();
