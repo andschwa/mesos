@@ -96,6 +96,6 @@ int main(int argc, char** argv)
 
   int result = RUN_ALL_TESTS();
 
-  process::finalize(true);
+  process::finalize();
   return result;
 }
