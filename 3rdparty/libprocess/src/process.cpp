@@ -1242,10 +1242,7 @@ bool initialize(
 
 // Gracefully winds down libprocess in roughly the reverse order of
 // initialization.
-//
-// NOTE: `finalize_wsa` controls whether libprocess also finalizes
-// the Windows socket stack, which affects the entire process.
-void finalize(bool finalize_wsa)
+void finalize()
 {
   // The clock is only paused during tests.  Pausing may lead to infinite
   // waits during clean up, so we make sure the clock is running normally.
@@ -1319,7 +1316,7 @@ void finalize(bool finalize_wsa)
   *libprocess_flags = internal::Flags();
 
 #ifdef __WINDOWS__
-  if (finalize_wsa && !net::wsa_cleanup()) {
+  if (!net::wsa_cleanup()) {
     EXIT(EXIT_FAILURE) << "Failed to finalize the WSA socket stack";
   }
 #endif // __WINDOWS__
