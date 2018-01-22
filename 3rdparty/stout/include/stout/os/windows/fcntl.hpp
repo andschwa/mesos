@@ -28,30 +28,63 @@
 #define O_CREAT _O_CREAT
 #define O_TRUNC _O_TRUNC
 #define O_APPEND _O_APPEND
+// NOTE: The semantics of close-on-exec are the same as disabling inheritance.
 #define O_CLOEXEC _O_NOINHERIT
 
 namespace os {
 
-// NOTE: This is not supported on Windows.
 inline Try<Nothing> cloexec(const WindowsFD& fd)
 {
-  VLOG(2) << "`os::cloexec` has been called, but is a no-op on Windows";
-  return Nothing();
+  switch (fd.type()) {
+    case WindowsFD::FD_CRT:
+    case WindowsFD::FD_HANDLE: {
+      if (::SetHandleInformation(fd, HANDLE_FLAG_INHERIT, 0)) {
+        return Nothing();
+      } else {
+        return WindowsError("`os::cloexec` failed for CRT or HANDLE");
+      }
+    }
+    case WindowsFD::FD_SOCKET: {
+      // See the default flags for `network::socket()`, which provide
+      // close-on-exec semantics for all created sockets.
+      VLOG(3) << "`os::cloexec` called on Windows socket, "
+              << "but all we turn inheritance off for all sockets by default";
+      return Nothing();
+    }
+  }
+  UNREACHABLE();
 }
 
 
-// NOTE: This is not supported on Windows.
 inline Try<Nothing> unsetCloexec(const WindowsFD& fd)
 {
-  VLOG(2) << "`os::unsetCloexec` has been called, but is a no-op on Windows";
-  return Nothing();
+  switch (fd.type()) {
+    case WindowsFD::FD_CRT:
+    case WindowsFD::FD_HANDLE: {
+      if (::SetHandleInformation(
+              fd, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT)) {
+        return Nothing();
+      } else {
+        return WindowsError("`os::unsetCloexec` failed for CRT or HANDLE");
+      }
+    }
+    case WindowsFD::FD_SOCKET: {
+      return Error("`os::unsetCloexec` not supported on Windows sockets");
+    }
+  }
+  UNREACHABLE();
 }
 
 
 inline Try<bool> isCloexec(const WindowsFD& fd)
 {
-  VLOG(2) << "`os::isCloexec` has been called, but is a stub on Windows";
-  return true;
+  // This works for all cases of `fd.type()`.
+  DWORD flags;
+  if (::GetHandleInformation(fd, &flags)) {
+    return flags != HANDLE_FLAG_INHERIT;
+  } else {
+    return WindowsError("`os::isCloexec` failed");
+  }
 }
 
 
@@ -67,7 +100,7 @@ inline Try<Nothing> nonblock(const WindowsFD& fd)
       const u_long non_block_mode = 1;
       u_long mode = non_block_mode;
 
-      int result = ioctlsocket(fd, FIONBIO, &mode);
+      int result = ::ioctlsocket(fd, FIONBIO, &mode);
       if (result != NO_ERROR) {
         return WindowsSocketError();
       }
