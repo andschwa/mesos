@@ -27,25 +27,38 @@ inline Try<WindowsFD> dup(const WindowsFD& fd)
   switch (fd.type()) {
     case WindowsFD::FD_CRT:
     case WindowsFD::FD_HANDLE: {
-      int result = ::_dup(fd.crt());
-      if (result == -1) {
-        return ErrnoError();
+      HANDLE duplicate = INVALID_HANDLE_VALUE;
+      const BOOL result = ::DuplicateHandle(
+          // Source process == current.
+          ::GetCurrentProcess(),
+          // Handle to duplicate.
+          static_cast<HANDLE>(fd),
+          // Target process == current.
+          ::GetCurrentProcess(),
+          // Duplicated handle.
+          &duplicate,
+          // Ignored (DUPLICATE_SAME_ACCESS).
+          0,
+          // We mark the new (duplicated) handle as inheritable because
+          // the `dup` function on Linux does not have the close-on-exec flag
+          // (meaning, it is inheritable).
+          TRUE,
+          // Same access level as source.
+          DUPLICATE_SAME_ACCESS);
+
+      if (!result) {
+        return WindowsError("Failed to duplicate handle of stdin file");
       }
-      return result;
+
+      return duplicate;
     }
     case WindowsFD::FD_SOCKET: {
-#pragma warning(push)
-#pragma warning(disable : 4996)
-      // Disable compiler warning asking us to use the Unicode version of
-      // `WSASocket` and `WSADuplicateSocket`, because Mesos currently does not
-      // support Unicode. See MESOS-6817.
-      WSAPROTOCOL_INFO protInfo;
-      if (::WSADuplicateSocket(fd, GetCurrentProcessId(), &protInfo) !=
-          INVALID_SOCKET) {
-        return WSASocket(0, 0, 0, &protInfo, 0, 0);
-      };
-#pragma warning(pop)
-      return SocketError();
+      WSAPROTOCOL_INFOW info;
+      const int result = ::WSADuplicateSocketW(fd, ::GetCurrentProcessId(), &info);
+      if (result != 0) {
+        return SocketError();
+      }
+      return ::WSASocketW(0, 0, 0, &info, 0, 0);
     }
   }
   UNREACHABLE();
