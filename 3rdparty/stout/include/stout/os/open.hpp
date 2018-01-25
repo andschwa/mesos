@@ -32,6 +32,8 @@
 
 #ifndef O_CLOEXEC
 #error "missing O_CLOEXEC support on this platform"
+// NOTE: On Windows, `fnctl.hpp` defines `O_CLOEXEC` as `_O_NOINHERIT`, which is
+// semantically equivalent.
 #endif
 
 namespace os {
