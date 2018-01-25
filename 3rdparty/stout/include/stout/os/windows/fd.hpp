@@ -118,6 +118,28 @@ public:
     return static_cast<intptr_t>(socket_);
   }
 
+  operator int() const
+  {
+    switch (type()) {
+      case FD_CRT:
+      case FD_HANDLE: {
+        return crt_;
+      }
+      case FD_SOCKET: {
+        // Users of this class expect invalid sockets to be < 0 (like in POSIX
+        // environments); however, on Windows the value is `INVALID_SOCKET`. So
+        // we check for that, and then behave "as expected" instead. This is
+        // significantly easier than fixing all socket code to check for two
+        // different error behaviors.
+        if (socket_ == INVALID_SOCKET) {
+          return -1;
+        }
+        return static_cast<int>(socket_);
+      }
+    }
+    UNREACHABLE();
+  }
+
   Type type() const { return type_; }
 
 private:
@@ -163,109 +185,20 @@ inline std::ostream& operator<<(std::ostream& stream, const WindowsFD& fd)
   return stream;
 }
 
-
-// The complexity in this function is due to our effort in trying to support the
-// cases where file descriptors are compared as an `int` on POSIX. For example,
-// we use expressions such as `fd < 0` to check for validity.
-// TODO(mpark): Consider introducing an `is_valid` function for `int_fd`.
 inline bool operator<(const WindowsFD& left, const WindowsFD& right)
 {
-  // In general, when compared against a `WindowsFD` in the `FD_CRT`, we map
-  // `INVALID_HANDLE_VALUE` and `INVALID_SOCKET` to `-1` before performing the
-  // comparison. The check for `< 0` followed by cast to `HANDLE` or `SOCKET` is
-  // due to the fact that `HANDLE` and `SOCKET` are both unsigned.
-  switch (left.type()) {
-    case WindowsFD::FD_CRT: {
-      switch (right.type()) {
-        case WindowsFD::FD_CRT: {
-          return left.crt() < right.crt();
-        }
-        case WindowsFD::FD_HANDLE: {
-          if (static_cast<HANDLE>(right) == INVALID_HANDLE_VALUE) {
-            return left.crt() < -1;
-          }
-          if (left.crt() < 0) {
-            return true;
-          }
-#pragma warning(push)
-#pragma warning(disable : 4312)
-          // Disable `int`-to-`HANDLE` compiler warning. This is safe to do,
-          // see comment above.
-          return reinterpret_cast<HANDLE>(left.crt()) <
-                 static_cast<HANDLE>(right);
-#pragma warning(pop)
-        }
-        case WindowsFD::FD_SOCKET: {
-          if (static_cast<SOCKET>(right) == INVALID_SOCKET) {
-            return left.crt() < -1;
-          }
-          if (left.crt() < 0) {
-            return true;
-          }
-          return static_cast<SOCKET>(left.crt()) < static_cast<SOCKET>(right);
-        }
-      }
-    }
-    case WindowsFD::FD_HANDLE: {
-      switch (right.type()) {
-        case WindowsFD::FD_CRT: {
-          if (static_cast<HANDLE>(left) == INVALID_HANDLE_VALUE) {
-            return -1 < right.crt();
-          }
-          if (right.crt() < 0) {
-            return false;
-          }
-#pragma warning(push)
-#pragma warning(disable : 4312)
-          // Disable `int`-to-`HANDLE` compiler warning. This is safe to do,
-          // see comment above.
-          return static_cast<HANDLE>(left) <
-                 reinterpret_cast<HANDLE>(right.crt());
-#pragma warning(pop)
-        }
-        case WindowsFD::FD_HANDLE: {
-          return static_cast<HANDLE>(left) < static_cast<HANDLE>(right);
-        }
-        case WindowsFD::FD_SOCKET: {
-          return static_cast<HANDLE>(left) <
-                 reinterpret_cast<HANDLE>(static_cast<SOCKET>(right));
-        }
-      }
-    }
-    case WindowsFD::FD_SOCKET: {
-      switch (right.type()) {
-        case WindowsFD::FD_CRT: {
-          if (static_cast<SOCKET>(left) == INVALID_SOCKET) {
-            return -1 < right.crt();
-          }
-          if (right.crt() < 0) {
-            return false;
-          }
-          return static_cast<SOCKET>(left) < static_cast<SOCKET>(right.crt());
-        }
-        case WindowsFD::FD_HANDLE: {
-          return reinterpret_cast<HANDLE>(static_cast<SOCKET>(left)) <
-                 static_cast<HANDLE>(right);
-        }
-        case WindowsFD::FD_SOCKET: {
-          return static_cast<SOCKET>(left) < static_cast<SOCKET>(right);
-        }
-      }
-    }
-  }
-  UNREACHABLE();
+  return static_cast<int>(left) < static_cast<int>(right);
 }
-
 
 inline bool operator<(int left, const WindowsFD& right)
 {
-  return WindowsFD(left) < right;
+  return left < static_cast<int>(right);
 }
 
 
 inline bool operator<(const WindowsFD& left, int right)
 {
-  return left < WindowsFD(right);
+  return static_cast<int>(left) < right;
 }
 
 
@@ -277,13 +210,13 @@ inline bool operator>(const WindowsFD& left, const WindowsFD& right)
 
 inline bool operator>(int left, const WindowsFD& right)
 {
-  return WindowsFD(left) > right;
+  return left > static_cast<int>(right);
 }
 
 
 inline bool operator>(const WindowsFD& left, int right)
 {
-  return left > WindowsFD(right);
+  return static_cast<int>(left) > right;
 }
 
 
@@ -295,13 +228,13 @@ inline bool operator<=(const WindowsFD& left, const WindowsFD& right)
 
 inline bool operator<=(int left, const WindowsFD& right)
 {
-  return WindowsFD(left) <= right;
+  return left <= static_cast<int>(right);
 }
 
 
 inline bool operator<=(const WindowsFD& left, int right)
 {
-  return left <= WindowsFD(right);
+  return static_cast<int>(left) <= right;
 }
 
 
@@ -313,118 +246,29 @@ inline bool operator>=(const WindowsFD& left, const WindowsFD& right)
 
 inline bool operator>=(int left, const WindowsFD& right)
 {
-  return WindowsFD(left) >= right;
+  return left >= static_cast<int>(right);
 }
 
 
 inline bool operator>=(const WindowsFD& left, int right)
 {
-  return left >= WindowsFD(right);
+  return static_cast<int>(left) >= right;
 }
 
-
-// The complexity in this function is due to our effort in trying to support the
-// cases where file descriptors are compared as an `int` on POSIX. For example,
-// we use expressions such as `fd != -1` to check for validity.
-// TODO(mpark): Consider introducing an `is_valid` function for `int_fd`.
 inline bool operator==(const WindowsFD& left, const WindowsFD& right)
 {
-  // In general, when compared against a `WindowsFD` in the `FD_CRT`, we map
-  // `INVALID_HANDLE_VALUE` and `INVALID_SOCKET` to `-1` before performing the
-  // comparison. The check for `< 0` followed by cast to `HANDLE` or `SOCKET` is
-  // due to the fact that `HANDLE` and `SOCKET` are both unsigned.
-  switch (left.type()) {
-    case WindowsFD::FD_CRT: {
-      switch (right.type()) {
-        case WindowsFD::FD_CRT: {
-          return left.crt() == right.crt();
-        }
-        case WindowsFD::FD_HANDLE: {
-          if (static_cast<HANDLE>(right) == INVALID_HANDLE_VALUE) {
-            return left.crt() == -1;
-          }
-          if (left.crt() < 0) {
-            return false;
-          }
-#pragma warning(push)
-#pragma warning(disable : 4312)
-          // Disable `int`-to-`HANDLE` compiler warning. This is safe to do,
-          // see comment above.
-          return reinterpret_cast<HANDLE>(left.crt()) ==
-                 static_cast<HANDLE>(right);
-#pragma warning(pop)
-        }
-        case WindowsFD::FD_SOCKET: {
-          if (static_cast<SOCKET>(right) == INVALID_SOCKET) {
-            return left.crt() == -1;
-          }
-          if (left.crt() < 0) {
-            return false;
-          }
-          return static_cast<SOCKET>(left.crt()) == static_cast<SOCKET>(right);
-        }
-      }
-    }
-    case WindowsFD::FD_HANDLE: {
-      switch (right.type()) {
-        case WindowsFD::FD_CRT: {
-          if (static_cast<HANDLE>(left) == INVALID_HANDLE_VALUE) {
-            return -1 == right.crt();
-          }
-          if (right.crt() < 0) {
-            return false;
-          }
-#pragma warning(push)
-#pragma warning(disable : 4312)
-          // Disable `int`-to-`HANDLE` compiler warning. This is safe to do,
-          // see comment above.
-          return static_cast<HANDLE>(left) ==
-                 reinterpret_cast<HANDLE>(right.crt());
-#pragma warning(pop)
-        }
-        case WindowsFD::FD_HANDLE: {
-          return static_cast<HANDLE>(left) == static_cast<HANDLE>(right);
-        }
-        case WindowsFD::FD_SOCKET: {
-          return static_cast<HANDLE>(left) ==
-                 reinterpret_cast<HANDLE>(static_cast<SOCKET>(right));
-        }
-      }
-    }
-    case WindowsFD::FD_SOCKET: {
-      switch (right.type()) {
-        case WindowsFD::FD_CRT: {
-          if (static_cast<SOCKET>(left) == INVALID_SOCKET) {
-            return -1 == right.crt();
-          }
-          if (right.crt() < 0) {
-            return false;
-          }
-          return static_cast<SOCKET>(left) == static_cast<SOCKET>(right.crt());
-        }
-        case WindowsFD::FD_HANDLE: {
-          return reinterpret_cast<HANDLE>(static_cast<SOCKET>(left)) ==
-                 static_cast<HANDLE>(right);
-        }
-        case WindowsFD::FD_SOCKET: {
-          return static_cast<SOCKET>(left) == static_cast<SOCKET>(right);
-        }
-      }
-    }
-  }
-  UNREACHABLE();
+  return static_cast<int>(left) == static_cast<int>(right);
 }
-
 
 inline bool operator==(int left, const WindowsFD& right)
 {
-  return WindowsFD(left) == right;
+  return left == static_cast<int>(right);
 }
 
 
 inline bool operator==(const WindowsFD& left, int right)
 {
-  return left == WindowsFD(right);
+  return static_cast<int>(left) == right;
 }
 
 
@@ -436,13 +280,13 @@ inline bool operator!=(const WindowsFD& left, const WindowsFD& right)
 
 inline bool operator!=(int left, const WindowsFD& right)
 {
-  return WindowsFD(left) != right;
+  return left != static_cast<int>(right);
 }
 
 
 inline bool operator!=(const WindowsFD& left, int right)
 {
-  return left != WindowsFD(right);
+  return static_cast<int>(left) != right;
 }
 
 } // namespace os {
