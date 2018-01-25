@@ -102,8 +102,17 @@ public:
 
   operator HANDLE() const
   {
-    CHECK((type() == FD_CRT) || (type() == FD_HANDLE));
-    return handle_;
+    switch (type()) {
+      case FD_CRT:
+      case FD_HANDLE: {
+        return handle_;
+      }
+      case FD_SOCKET: {
+        // This is safe as Windows sockets can be treated as handles.
+        return reinterpret_cast<HANDLE>(socket_);
+      }
+    }
+    UNREACHABLE();
   }
 
   operator SOCKET() const

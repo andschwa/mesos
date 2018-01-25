@@ -35,44 +35,21 @@ namespace os {
 
 inline Try<Nothing> cloexec(const WindowsFD& fd)
 {
-  switch (fd.type()) {
-    case WindowsFD::FD_CRT:
-    case WindowsFD::FD_HANDLE: {
-      if (::SetHandleInformation(fd, HANDLE_FLAG_INHERIT, 0)) {
-        return Nothing();
-      } else {
-        return WindowsError("`os::cloexec` failed for CRT or HANDLE");
-      }
-    }
-    case WindowsFD::FD_SOCKET: {
-      // See the default flags for `network::socket()`, which provide
-      // close-on-exec semantics for all created sockets.
-      VLOG(3) << "`os::cloexec` called on Windows socket, "
-              << "but all we turn inheritance off for all sockets by default";
-      return Nothing();
-    }
+  if (::SetHandleInformation(fd, HANDLE_FLAG_INHERIT, 0)) {
+    return Nothing();
+  } else {
+    return WindowsError("`os::cloexec` failed");
   }
-  UNREACHABLE();
 }
 
 
 inline Try<Nothing> unsetCloexec(const WindowsFD& fd)
 {
-  switch (fd.type()) {
-    case WindowsFD::FD_CRT:
-    case WindowsFD::FD_HANDLE: {
-      if (::SetHandleInformation(
-              fd, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT)) {
-        return Nothing();
-      } else {
-        return WindowsError("`os::unsetCloexec` failed for CRT or HANDLE");
-      }
-    }
-    case WindowsFD::FD_SOCKET: {
-      return Error("`os::unsetCloexec` not supported on Windows sockets");
-    }
+  if (::SetHandleInformation(fd, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT)) {
+    return Nothing();
+  } else {
+    return WindowsError("`os::unsetCloexec` failed for CRT or HANDLE");
   }
-  UNREACHABLE();
 }
 
 
