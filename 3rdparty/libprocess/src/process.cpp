@@ -1380,7 +1380,7 @@ void SocketManager::finalize()
   // `SocketManager::close` for more details.
   do {
     synchronized (mutex) {
-      socket = !sockets.empty() ? sockets.begin()->first : -1;
+      socket = !sockets.empty() ? sockets.begin()->first : int_fd(-1);
     }
 
     if (socket >= 0) {
