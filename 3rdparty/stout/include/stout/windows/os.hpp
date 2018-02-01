@@ -35,8 +35,8 @@
 #include <stout/version.hpp>
 #include <stout/windows.hpp>
 
-#include <stout/os/os.hpp>
 #include <stout/os/getenv.hpp>
+#include <stout/os/os.hpp>
 #include <stout/os/process.hpp>
 #include <stout/os/read.hpp>
 
@@ -46,11 +46,11 @@
 // NOTE: These system headers must be included after `stout/windows.hpp`
 // as they may include `Windows.h`. See comments in `stout/windows.hpp`
 // for why this ordering is important.
-#include <direct.h>
-#include <io.h>
 #include <Psapi.h>
 #include <TlHelp32.h>
 #include <Userenv.h>
+#include <direct.h>
+#include <io.h>
 
 namespace os {
 namespace internal {
@@ -108,10 +108,8 @@ inline Try<std::set<pid_t>> pids(Option<pid_t> group, Option<pid_t> session)
     size_in_bytes = processes.size() * sizeof(pid_t);
     CHECK_LE(size_in_bytes, MAXDWORD);
 
-    BOOL result = ::EnumProcesses(
-        processes.data(),
-        static_cast<DWORD>(size_in_bytes),
-        &bytes_returned);
+    const BOOL result = ::EnumProcesses(
+        processes.data(), static_cast<DWORD>(size_in_bytes), &bytes_returned);
 
     if (!result) {
       return WindowsError("os::pids: Call to `EnumProcesses` failed");
@@ -239,13 +237,11 @@ inline Result<pid_t> waitpid(long pid, int* status, int options)
 
   // Open the child process as a safe `SharedHandle`.
   const HANDLE process = ::OpenProcess(
-      PROCESS_QUERY_INFORMATION | SYNCHRONIZE,
-      FALSE,
-      static_cast<DWORD>(pid));
+      PROCESS_QUERY_INFORMATION | SYNCHRONIZE, FALSE, static_cast<DWORD>(pid));
 
   if (process == nullptr) {
-    return WindowsError("os::waitpid: Failed to open process for pid '" +
-                        stringify(pid) + "'");
+    return WindowsError(
+        "os::waitpid: Failed to open process for pid '" + stringify(pid) + "'");
   }
 
   SharedHandle scoped_process(process, ::CloseHandle);
@@ -253,9 +249,8 @@ inline Result<pid_t> waitpid(long pid, int* status, int options)
   // If `WNOHANG` flag is set, don't wait. Otherwise, wait for child to
   // terminate.
   const DWORD wait_time = wait_for_child ? INFINITE : 0;
-  const DWORD wait_results = ::WaitForSingleObject(
-      scoped_process.get(),
-      wait_time);
+  const DWORD wait_results =
+    ::WaitForSingleObject(scoped_process.get(), wait_time);
 
   // Verify our wait exited correctly.
   const bool state_signaled = wait_results == WAIT_OBJECT_0;
@@ -266,10 +261,9 @@ inline Result<pid_t> waitpid(long pid, int* status, int options)
     return WindowsError(
         "os::waitpid: Failed to wait for pid '" + stringify(pid) +
         "'. `::WaitForSingleObject` should have waited for child process to " +
-        "exit, but returned code '" + stringify(wait_results) +
-        "' instead");
-  } else if (wait_for_child && !state_signaled &&
-             wait_results != WAIT_TIMEOUT) {
+        "exit, but returned code '" + stringify(wait_results) + "' instead");
+  } else if (
+      wait_for_child && !state_signaled && wait_results != WAIT_TIMEOUT) {
     // If `WNOHANG` is set, then a successful wait should report either a
     // timeout (since we set the time to wait to `0`), or a successful state
     // change of `scoped_process`. Anything else is an error.
@@ -361,8 +355,8 @@ inline Try<Load> loadavg()
   // No Windows equivalent, return an error until there is a need. We can
   // construct an approximation of this function by periodically polling
   // `GetSystemTimes` and using a sliding window of statistics.
-  return WindowsError(ERROR_NOT_SUPPORTED,
-                      "Failed to determine system load averages");
+  return WindowsError(
+      ERROR_NOT_SUPPORTED, "Failed to determine system load averages");
 }
 
 
@@ -442,7 +436,7 @@ inline Result<PROCESSENTRY32W> process_entry(pid_t pid)
 
     has_next = Process32Next(safe_snapshot_handle.get(), &process_entry);
     if (has_next == FALSE) {
-      DWORD last_error = ::GetLastError();
+      const DWORD last_error = ::GetLastError();
       if (last_error != ERROR_NO_MORE_FILES && last_error != ERROR_SUCCESS) {
         return WindowsError(
             "os::process_entry: Call to `Process32Next` failed");
@@ -476,9 +470,7 @@ inline Result<Process> process(pid_t pid)
   }
 
   HANDLE process_handle = ::OpenProcess(
-      PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-      false,
-      pid);
+      PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, false, pid);
 
   // ::OpenProcess returns `NULL`, not `INVALID_HANDLE_VALUE` on failure.
   if (process_handle == nullptr) {
@@ -489,7 +481,7 @@ inline Result<Process> process(pid_t pid)
 
   // Get Windows Working set size (Resident set size in linux).
   PROCESS_MEMORY_COUNTERS proc_mem_counters;
-  BOOL get_process_memory_info = ::GetProcessMemoryInfo(
+  const BOOL get_process_memory_info = ::GetProcessMemoryInfo(
       safe_process_handle.get_handle(),
       &proc_mem_counters,
       sizeof(proc_mem_counters));
@@ -500,7 +492,8 @@ inline Result<Process> process(pid_t pid)
 
   // Get session Id.
   pid_t session_id;
-  BOOL process_id_to_session_id = ::ProcessIdToSessionId(pid, &session_id);
+  const BOOL process_id_to_session_id =
+    ::ProcessIdToSessionId(pid, &session_id);
 
   if (!process_id_to_session_id) {
     return WindowsError("os::process: Call to `ProcessIdToSessionId` failed");
@@ -508,7 +501,7 @@ inline Result<Process> process(pid_t pid)
 
   // Get Process CPU time.
   FILETIME create_filetime, exit_filetime, kernel_filetime, user_filetime;
-  BOOL get_process_times = ::GetProcessTimes(
+  const BOOL get_process_times = ::GetProcessTimes(
       safe_process_handle.get_handle(),
       &create_filetime,
       &exit_filetime,
@@ -553,8 +546,10 @@ inline int random()
 // Thus all our job objects must be named. This is essentially a shim
 // to map the Linux concept of a process tree's root `pid` to a
 // named job object so that the process group can be treated similarly.
-inline Try<std::wstring> name_job(pid_t pid) {
-  Try<std::string> alpha_pid = strings::internal::format("MESOS_JOB_%X", pid);
+inline Try<std::wstring> name_job(pid_t pid)
+{
+  const Try<std::string> alpha_pid =
+    strings::internal::format("MESOS_JOB_%X", pid);
   if (alpha_pid.isError()) {
     return Error(alpha_pid.error());
   }
@@ -573,10 +568,7 @@ inline Try<SharedHandle> open_job(
     const std::wstring& name)
 {
   SharedHandle job_handle(
-      ::OpenJobObjectW(
-          desired_access,
-          inherit_handles,
-          name.data()),
+      ::OpenJobObjectW(desired_access, inherit_handles, name.data()),
       ::CloseHandle);
 
   if (job_handle.get_handle() == nullptr) {
@@ -589,19 +581,19 @@ inline Try<SharedHandle> open_job(
 }
 
 
-
 inline Try<SharedHandle> open_job(
-  const DWORD desired_access,
-  const BOOL inherit_handles,
-  const pid_t pid)
+    const DWORD desired_access,
+    const BOOL inherit_handles,
+    const pid_t pid)
 {
-  Try<std::wstring> name = os::name_job(pid);
+  const Try<std::wstring> name = os::name_job(pid);
   if (name.isError()) {
     return Error(name.error());
   }
 
   return open_job(desired_access, inherit_handles, name.get());
 }
+
 
 // `create_job` function creates a named job object using `name`.
 inline Try<SharedHandle> create_job(const std::wstring& name)
@@ -630,25 +622,22 @@ inline Try<SharedHandle> create_job(const std::wstring& name)
 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms684925(v=vs.85).aspx // NOLINT(whitespace/line_length)
 inline Try<JOBOBJECT_BASIC_ACCOUNTING_INFORMATION> get_job_info(pid_t pid)
 {
-  Try<SharedHandle> job_handle = os::open_job(
-      JOB_OBJECT_QUERY,
-      false,
-      pid);
+  Try<SharedHandle> job_handle = os::open_job(JOB_OBJECT_QUERY, false, pid);
   if (job_handle.isError()) {
     return Error(job_handle.error());
   }
 
   JOBOBJECT_BASIC_ACCOUNTING_INFORMATION info = {};
 
-  BOOL result = ::QueryInformationJobObject(
-    job_handle.get().get_handle(),
-    JobObjectBasicAccountingInformation,
-    &info,
-    sizeof(info),
-    nullptr);
+  const BOOL result = ::QueryInformationJobObject(
+      job_handle->get_handle(),
+      JobObjectBasicAccountingInformation,
+      &info,
+      sizeof(info),
+      nullptr);
   if (result == FALSE) {
     return WindowsError(
-      "os::get_job_info: call to `QueryInformationJobObject` failed");
+        "os::get_job_info: call to `QueryInformationJobObject` failed");
   }
 
   return info;
@@ -656,23 +645,25 @@ inline Try<JOBOBJECT_BASIC_ACCOUNTING_INFORMATION> get_job_info(pid_t pid)
 
 
 template <size_t max_pids>
-Result<std::set<Process>> _get_job_processes(const SharedHandle& job_handle) {
+Result<std::set<Process>> _get_job_processes(const SharedHandle& job_handle)
+{
   // This is a statically allocated `JOBOBJECT_BASIC_PROCESS_ID_LIST`. We lie to
   // the Windows API and construct our own struct to avoid (a) having to do
   // hairy size calculations and (b) having to allocate dynamically, and then
   // worry about deallocating.
-  struct {
-    DWORD     NumberOfAssignedProcesses;
-    DWORD     NumberOfProcessIdsInList;
-    DWORD     ProcessIdList[max_pids];
+  struct
+  {
+    DWORD NumberOfAssignedProcesses;
+    DWORD NumberOfProcessIdsInList;
+    DWORD ProcessIdList[max_pids];
   } pid_list;
 
-  BOOL result = ::QueryInformationJobObject(
-    job_handle.get_handle(),
-    JobObjectBasicProcessIdList,
-    reinterpret_cast<JOBOBJECT_BASIC_PROCESS_ID_LIST*>(&pid_list),
-    sizeof(pid_list),
-    nullptr);
+  const BOOL result = ::QueryInformationJobObject(
+      job_handle.get_handle(),
+      JobObjectBasicProcessIdList,
+      reinterpret_cast<JOBOBJECT_BASIC_PROCESS_ID_LIST*>(&pid_list),
+      sizeof(pid_list),
+      nullptr);
 
   // `ERROR_MORE_DATA` indicates we need a larger `max_pids`.
   if (result == FALSE && ::GetLastError() == ERROR_MORE_DATA) {
@@ -681,7 +672,7 @@ Result<std::set<Process>> _get_job_processes(const SharedHandle& job_handle) {
 
   if (result == FALSE) {
     return WindowsError(
-      "os::_get_job_processes: call to `QueryInformationJobObject` failed");
+        "os::_get_job_processes: call to `QueryInformationJobObject` failed");
   }
 
   std::set<Process> processes;
@@ -699,10 +690,7 @@ Result<std::set<Process>> _get_job_processes(const SharedHandle& job_handle) {
 inline Try<std::set<Process>> get_job_processes(pid_t pid)
 {
   // TODO(andschwa): Overload open_job to use pid.
-  Try<SharedHandle> job_handle = os::open_job(
-    JOB_OBJECT_QUERY,
-    false,
-    pid);
+  Try<SharedHandle> job_handle = os::open_job(JOB_OBJECT_QUERY, false, pid);
   if (job_handle.isError()) {
     return Error(job_handle.error());
   }
@@ -717,14 +705,14 @@ inline Try<std::set<Process>> get_job_processes(pid_t pid)
     return result.get();
   }
 
-  result = os::_get_job_processes<32*32>(job_handle.get());
+  result = os::_get_job_processes<32 * 32>(job_handle.get());
   if (result.isError()) {
     return Error(result.error());
   } else if (result.isSome()) {
     return result.get();
   }
 
-  result = os::_get_job_processes<32*32*32>(job_handle.get());
+  result = os::_get_job_processes<32 * 32 * 32>(job_handle.get());
   if (result.isError()) {
     return Error(result.error());
   } else if (result.isSome()) {
@@ -737,23 +725,24 @@ inline Try<std::set<Process>> get_job_processes(pid_t pid)
 }
 
 
-inline Try<Bytes> get_job_mem(pid_t pid) {
+inline Try<Bytes> get_job_mem(pid_t pid)
+{
   const Try<std::set<Process>> processes = os::get_job_processes(pid);
   if (processes.isError()) {
     return Error(processes.error());
   }
 
   return std::accumulate(
-    processes.get().cbegin(),
-    processes.get().cend(),
-    Bytes(0),
-    [](const Bytes& bytes, const Process& process) {
-      if (process.rss.isNone()) {
-        return bytes;
-      }
+      processes.get().cbegin(),
+      processes.get().cend(),
+      Bytes(0),
+      [](const Bytes& bytes, const Process& process) {
+        if (process.rss.isNone()) {
+          return bytes;
+        }
 
-      return bytes + process.rss.get();
-    });
+        return bytes + process.rss.get();
+      });
 }
 
 
@@ -766,22 +755,21 @@ inline Try<Nothing> set_job_kill_on_close_limit(pid_t pid)
   JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = {};
   info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 
-  Try<SharedHandle> job_handle = os::open_job(
-      JOB_OBJECT_SET_ATTRIBUTES,
-      false,
-      pid);
+  Try<SharedHandle> job_handle =
+    os::open_job(JOB_OBJECT_SET_ATTRIBUTES, false, pid);
   if (job_handle.isError()) {
     return Error(job_handle.error());
   }
 
-  BOOL result = ::SetInformationJobObject(
-    job_handle.get().get_handle(),
-    JobObjectExtendedLimitInformation,
-    &info,
-    sizeof(info));
+  const BOOL result = ::SetInformationJobObject(
+      job_handle->get_handle(),
+      JobObjectExtendedLimitInformation,
+      &info,
+      sizeof(info));
   if (result == FALSE) {
     return WindowsError(
-      "os::set_job_kill_on_close_limit: call to `SetInformationJobObject` failed");
+        "os::set_job_kill_on_close_limit: call to `SetInformationJobObject` "
+        "failed");
   }
 
   return Nothing();
@@ -797,8 +785,7 @@ inline Try<Nothing> set_job_cpu_limit(pid_t pid, double cpus)
 {
   JOBOBJECT_CPU_RATE_CONTROL_INFORMATION control_info = {};
   control_info.ControlFlags =
-    JOB_OBJECT_CPU_RATE_CONTROL_ENABLE |
-    JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
+    JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
 
   // This `CpuRate` is the number of cycles per 10,000 cycles, or a percentage
   // times 100, e.g. 20% yields 20 * 100 = 2,000. However, the `cpus` argument
@@ -807,7 +794,11 @@ inline Try<Nothing> set_job_cpu_limit(pid_t pid, double cpus)
   // `(cpus / os::cpus()) * 100 * 100`, or the requested `cpus` divided by the
   // number of CPUs to obtain a fractional representation, multiplied by 100 to
   // make it a percentage, multiplied again by 100 to become a `CpuRate`.
-  Try<long> total_cpus = os::cpus();
+  const Try<long> total_cpus = os::cpus();
+  if (total_cpus.isError()) {
+    return Error(total_cpus.error());
+  }
+
   control_info.CpuRate =
     static_cast<DWORD>((cpus / total_cpus.get()) * 100 * 100);
   // This must not be set to 0, so 1 is the minimum.
@@ -815,22 +806,20 @@ inline Try<Nothing> set_job_cpu_limit(pid_t pid, double cpus)
     control_info.CpuRate = 1;
   }
 
-  Try<SharedHandle> job_handle = os::open_job(
-      JOB_OBJECT_SET_ATTRIBUTES,
-      false,
-      pid);
+  Try<SharedHandle> job_handle =
+    os::open_job(JOB_OBJECT_SET_ATTRIBUTES, false, pid);
   if (job_handle.isError()) {
     return Error(job_handle.error());
   }
 
-  BOOL result = ::SetInformationJobObject(
-    job_handle.get().get_handle(),
-    JobObjectCpuRateControlInformation,
-    &control_info,
-    sizeof(control_info));
+  const BOOL result = ::SetInformationJobObject(
+      job_handle->get_handle(),
+      JobObjectCpuRateControlInformation,
+      &control_info,
+      sizeof(control_info));
   if (result == FALSE) {
     return WindowsError(
-      "os::set_job_cpu_limit: call to `SetInformationJobObject` failed");
+        "os::set_job_cpu_limit: call to `SetInformationJobObject` failed");
   }
 
   return Nothing();
@@ -848,22 +837,20 @@ inline Try<Nothing> set_job_mem_limit(pid_t pid, Bytes limit)
   info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY;
   info.JobMemoryLimit = limit.bytes();
 
-  Try<SharedHandle> job_handle = os::open_job(
-      JOB_OBJECT_SET_ATTRIBUTES,
-      false,
-      pid);
+  Try<SharedHandle> job_handle =
+    os::open_job(JOB_OBJECT_SET_ATTRIBUTES, false, pid);
   if (job_handle.isError()) {
     return Error(job_handle.error());
   }
 
-  BOOL result = ::SetInformationJobObject(
-    job_handle.get().get_handle(),
-    JobObjectExtendedLimitInformation,
-    &info,
-    sizeof(info));
+  const BOOL result = ::SetInformationJobObject(
+      job_handle->get_handle(),
+      JobObjectExtendedLimitInformation,
+      &info,
+      sizeof(info));
   if (result == FALSE) {
     return WindowsError(
-      "os::set_job_mem_limit: call to `SetInformationJobObject` failed");
+        "os::set_job_mem_limit: call to `SetInformationJobObject` failed");
   }
 
   return Nothing();
@@ -873,7 +860,8 @@ inline Try<Nothing> set_job_mem_limit(pid_t pid, Bytes limit)
 // `assign_job` assigns a process with `pid` to the job object `job_handle`.
 // Every process started by the `pid` process using `CreateProcess`
 // will also be owned by the job object.
-inline Try<Nothing> assign_job(SharedHandle job_handle, pid_t pid) {
+inline Try<Nothing> assign_job(SharedHandle job_handle, pid_t pid)
+{
   // Get process handle for `pid`.
   SharedHandle process_handle(
       ::OpenProcess(
@@ -884,13 +872,11 @@ inline Try<Nothing> assign_job(SharedHandle job_handle, pid_t pid) {
       ::CloseHandle);
 
   if (process_handle.get_handle() == nullptr) {
-    return WindowsError(
-        "os::assign_job: Call to `OpenProcess` failed");
+    return WindowsError("os::assign_job: Call to `OpenProcess` failed");
   }
 
   const BOOL result = ::AssignProcessToJobObject(
-      job_handle.get_handle(),
-      process_handle.get_handle());
+      job_handle.get_handle(), process_handle.get_handle());
 
   if (result == FALSE) {
     return WindowsError(
@@ -912,8 +898,7 @@ inline Try<Nothing> kill_job(SharedHandle job_handle)
       1);
 
   if (result == FALSE) {
-    return WindowsError(
-        "os::kill_job: Call to `TerminateJobObject` failed");
+    return WindowsError("os::kill_job: Call to `TerminateJobObject` failed");
   }
 
   return Nothing();
@@ -951,10 +936,11 @@ inline std::string host_default_path()
   // `%SystemRoot%` is not identical on all platforms.
   const Option<std::string> system_root_env = os::getenv("SystemRoot");
   const std::string system_root = system_root_env.isSome()
-    ? system_root_env.get()
-    : path::join("C:", "Windows");
+                                    ? system_root_env.get()
+                                    : path::join("C:", "Windows");
 
-  return strings::join(";",
+  return strings::join(
+      ";",
       path::join(system_root, "System32"),
       system_root,
       path::join(system_root, "System32", "Wbem"),
