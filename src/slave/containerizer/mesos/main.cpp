@@ -19,6 +19,11 @@
 
 #include <stout/os/socket.hpp>
 
+#ifdef __WINDOWS__
+#include <stout/try.hpp>
+#include <stout/windows/os.hpp>
+#endif
+
 #include "slave/containerizer/mesos/launch.hpp"
 #include "slave/containerizer/mesos/mount.hpp"
 
@@ -32,6 +37,17 @@ using namespace mesos::internal::slave;
 int main(int argc, char** argv)
 {
 #ifdef __WINDOWS__
+  const pid_t pid = ::GetCurrentProcessId();
+  const Try<std::wstring> name = os::name_job(pid);
+  if (name.isError()) {
+    EXIT(EXIT_FAILURE) << name.error();
+  }
+
+  Try<SharedHandle> handle = os::open_job(JOB_OBJECT_QUERY, false, name.get());
+  if (handle.isError()) {
+    EXIT(EXIT_FAILURE) << handle.error();
+  }
+
   // Initialize the Windows socket stack.
   if (!net::wsa_initialize()) {
     EXIT(EXIT_FAILURE) << "Failed to initialize the WSA socket stack";
