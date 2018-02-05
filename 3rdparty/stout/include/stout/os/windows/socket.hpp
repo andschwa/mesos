@@ -127,7 +127,7 @@ inline Try<int_fd> socket(
     return WindowsSocketError();
   }
 
-  return s;
+  return os::WindowsFD(s);
 }
 
 // NOTE: The below wrappers are used to silence some implicit

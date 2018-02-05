@@ -93,6 +93,7 @@ class SocketFD
 {
 public:
   SocketFD(SOCKET socket) : socket(socket) {}
+
   // On Windows, libevent's `evutil_socket_t` is set to `intptr_t`.
   SocketFD(intptr_t socket) : socket(static_cast<SOCKET>(socket)) {}
 
@@ -115,30 +116,33 @@ private:
   SOCKET socket;
 };
 
-using VariantFD = Variant<os::IntFD, os::HandleFD, os::SocketFD>;
-struct WindowsFD : VariantFD
+
+using VariantFD = Variant<IntFD, HandleFD, SocketFD>;
+
+class WindowsFD : public VariantFD
 {
+public:
   using VariantFD::VariantFD;
 
   operator int() const
   {
     return visit(
-        [](const os::IntFD& fd) { return boost::get<os::IntFD>(fd); },
-        [](const os::HandleFD& fd) { return boost::get<os::HandleFD>(fd); },
-        [](const os::SocketFD& fd) { return boost::get<os::SocketFD>(fd); });
+        [](const os::IntFD& fd) { return fd; },
+        [](const os::HandleFD& fd) { return fd; },
+        [](const os::SocketFD& fd) { return fd; });
   }
 
   operator HANDLE() const
   {
     return visit(
-        [](const os::IntFD& fd) { return boost::get<os::IntFD>(fd); },
-        [](const os::HandleFD& fd) { return boost::get<os::HandleFD>(fd); },
-        [](const os::SocketFD& fd) { return boost::get<os::SocketFD>(fd); });
+        [](const os::IntFD& fd) { return fd; },
+        [](const os::HandleFD& fd) { return fd; },
+        [](const os::SocketFD& fd) { return fd; });
   }
 
-  operator SOCKET() const { return boost::get<SocketFD>(*this); }
+  // operator SOCKET() const { return boost::get<SocketFD>(static_cast<VariantFD>(*this)); }
 
-  operator intptr_t() const { return static_cast<intptr_t>(boost::get<SocketFD>(*this)); }
+  // operator intptr_t() const { return boost::get<SocketFD>(static_cast<VariantFD>(*this)); }
 };
 
 } // namespace os {

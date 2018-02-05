@@ -669,9 +669,6 @@ private:
       // Open the status updates file for reading and writing.
       Try<int_fd> fd = os::open(
           path,
-#ifdef __WINDOWS__
-          O_BINARY |
-#endif // __WINDOWS__
           O_SYNC | O_RDWR | O_CLOEXEC);
 
       if (fd.isError()) {
