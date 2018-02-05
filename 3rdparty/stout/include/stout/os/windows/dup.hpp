@@ -30,7 +30,7 @@ inline Try<WindowsFD> dup(const WindowsFD& fd)
       // TODO(andschwa): Replace this with `::DuplicateHandle` after figuring
       // out how to make it compatible with handles to stdin/stdout/stderr, as
       // well as defining sane inheritance semantics.
-      int result = ::_dup(fd.crt());
+      const int result = ::_dup(fd);
       if (result == -1) {
         return ErrnoError();
       }

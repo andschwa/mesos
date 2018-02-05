@@ -473,7 +473,7 @@ TEST_F(FsTest, Close)
 #ifdef __WINDOWS__
   // Open a file with the traditional Windows `HANDLE` API, then verify that
   // writing to that `HANDLE` succeeds before we close it, and fails after.
-  const HANDLE open_valid_handle = CreateFileW(
+  const int_fd open_valid_handle = ::CreateFileW(
       wide_stringify(testfile).data(),
       FILE_APPEND_DATA,
       0,                     // No sharing mode.
@@ -481,10 +481,10 @@ TEST_F(FsTest, Close)
       OPEN_EXISTING,         // Open only if it exists.
       FILE_ATTRIBUTE_NORMAL, // Open a normal file.
       nullptr);              // No attribute tempate file.
-  ASSERT_NE(INVALID_HANDLE_VALUE, open_valid_handle);
+  ASSERT_NE(INVALID_HANDLE_VALUE, static_cast<HANDLE>(open_valid_handle));
 
   DWORD bytes_written;
-  BOOL written = WriteFile(
+  BOOL written = ::WriteFile(
       open_valid_handle,
       test_message1.c_str(),                     // Data to write.
       static_cast<DWORD>(test_message1.size()),  // Bytes to write.
@@ -495,7 +495,7 @@ TEST_F(FsTest, Close)
 
   EXPECT_SOME(os::close(open_valid_handle));
 
-  written = WriteFile(
+  written = ::WriteFile(
       open_valid_handle,
       error_message.c_str(),                     // Data to write.
       static_cast<DWORD>(error_message.size()),  // Bytes to write.
@@ -516,7 +516,7 @@ TEST_F(FsTest, Close)
   // Try `close` with invalid `SOCKET` and `HANDLE`.
   EXPECT_ERROR(os::close(static_cast<SOCKET>(INVALID_SOCKET)));
   EXPECT_ERROR(os::close(INVALID_SOCKET));
-  EXPECT_ERROR(os::close(static_cast<HANDLE>(open_valid_handle)));
+  EXPECT_ERROR(os::close(open_valid_handle));
 #endif // __WINDOWS__
 
 #ifdef __WINDOWS__

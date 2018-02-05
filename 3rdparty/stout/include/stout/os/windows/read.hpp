@@ -32,7 +32,7 @@ inline ssize_t read(const WindowsFD& fd, void* data, size_t size)
   switch (fd.type()) {
     case WindowsFD::FD_CRT:
     case WindowsFD::FD_HANDLE: {
-      return ::_read(fd.crt(), data, static_cast<unsigned int>(size));
+      return ::_read(fd, data, static_cast<unsigned int>(size));
     }
     case WindowsFD::FD_SOCKET: {
       return ::recv(fd, (char*)data, static_cast<unsigned int>(size), 0);

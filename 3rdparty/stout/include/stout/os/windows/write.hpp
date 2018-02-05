@@ -33,7 +33,7 @@ inline ssize_t write(const WindowsFD& fd, const void* data, size_t size)
   switch (fd.type()) {
     case WindowsFD::FD_CRT:
     case WindowsFD::FD_HANDLE: {
-      return ::_write(fd.crt(), data, static_cast<unsigned int>(size));
+      return ::_write(fd, data, static_cast<unsigned int>(size));
     }
     case WindowsFD::FD_SOCKET: {
       return ::send(fd, (const char*)data, static_cast<int>(size), 0);

@@ -79,11 +79,7 @@ inline Try<Nothing> write(int_fd fd, const google::protobuf::Message& message)
     return Error("Failed to write size: " + result.error());
   }
 
-#ifdef __WINDOWS__
-  if (!message.SerializeToFileDescriptor(fd.crt())) {
-#else
   if (!message.SerializeToFileDescriptor(fd)) {
-#endif
     return Error("Failed to write/serialize message");
   }
 

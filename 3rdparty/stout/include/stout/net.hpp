@@ -165,7 +165,7 @@ inline Try<int> download(const std::string& url, const std::string& path)
   // we use `fdopen` in the entire codebase as of writing this comment.
 #ifdef __WINDOWS__
   // We open in "binary" mode on Windows to avoid line-ending translation.
-  FILE* file = ::_fdopen(fd->crt(), "wb");
+  FILE* file = ::_fdopen(fd.get(), "wb");
 #else
   FILE* file = ::fdopen(fd.get(), "w");
 #endif

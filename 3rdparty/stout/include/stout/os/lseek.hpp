@@ -29,7 +29,7 @@ namespace os {
 inline Try<off_t> lseek(int_fd fd, off_t offset, int whence)
 {
 #ifdef __WINDOWS__
-  off_t result = ::_lseek(fd.crt(), offset, whence);
+  off_t result = ::_lseek(fd, offset, whence);
 #else
   off_t result = ::lseek(fd, offset, whence);
 #endif

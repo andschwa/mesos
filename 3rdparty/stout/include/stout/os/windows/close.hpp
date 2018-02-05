@@ -31,7 +31,7 @@ inline Try<Nothing> close(const WindowsFD& fd)
     case WindowsFD::FD_HANDLE: {
       // We don't need to call `CloseHandle` on `fd.handle`, because calling
       // `_close` on the corresponding CRT FD implicitly invokes `CloseHandle`.
-      if (::_close(fd.crt()) < 0) {
+      if (::_close(fd) < 0) {
         return ErrnoError();
       }
       break;
