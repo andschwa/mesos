@@ -26,21 +26,19 @@
 
 namespace os {
 
-inline ssize_t write(const WindowsFD& fd, const void* data, size_t size)
+inline ssize_t write(const int_fd& fd, const void* data, size_t size)
 {
   CHECK_LE(size, INT_MAX);
-
-  switch (fd.type()) {
-    case WindowsFD::FD_CRT:
-    case WindowsFD::FD_HANDLE: {
-      return ::_write(fd.crt(), data, static_cast<unsigned int>(size));
-    }
-    case WindowsFD::FD_SOCKET: {
-      return ::send(fd, (const char*)data, static_cast<int>(size), 0);
-    }
-  }
-
-  UNREACHABLE();
+  return fd.visit(
+      [data, size](const os::IntFD& fd) {
+        return ::_write(fd, data, static_cast<unsigned int>(size));
+      },
+      [data, size](const os::HandleFD& fd) {
+        return ::_write(fd, data, static_cast<unsigned int>(size));
+      },
+      [data, size](const os::SocketFD& fd) {
+        return ::send(fd, (const char*)data, static_cast<int>(size), 0);
+      });
 }
 
 } // namespace os {

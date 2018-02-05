@@ -133,8 +133,8 @@ inline Try<int_fd> socket(
 // NOTE: The below wrappers are used to silence some implicit
 // type-casting warnings.
 
-inline os::WindowsFD accept(
-    const os::WindowsFD& fd, sockaddr* addr, socklen_t* addrlen)
+inline os::SocketFD accept(
+    const os::SocketFD& fd, sockaddr* addr, socklen_t* addrlen)
 {
   return ::accept(fd, addr, reinterpret_cast<int*>(addrlen));
 }
@@ -145,7 +145,7 @@ inline os::WindowsFD accept(
 // on POSIX will also work on Windows.
 
 inline int bind(
-    const os::WindowsFD& fd, const sockaddr* addr, socklen_t addrlen)
+    const os::SocketFD& fd, const sockaddr* addr, socklen_t addrlen)
 {
   CHECK_LE(addrlen, INT32_MAX);
   return ::bind(fd, addr, static_cast<int>(addrlen));
@@ -153,7 +153,7 @@ inline int bind(
 
 
 inline int connect(
-    const os::WindowsFD& fd, const sockaddr* address, socklen_t addrlen)
+    const os::SocketFD& fd, const sockaddr* address, socklen_t addrlen)
 {
   CHECK_LE(addrlen, INT32_MAX);
   return ::connect(fd, address, static_cast<int>(addrlen));
@@ -161,7 +161,7 @@ inline int connect(
 
 
 inline ssize_t send(
-    const os::WindowsFD& fd, const void* buf, size_t len, int flags)
+    const os::SocketFD& fd, const void* buf, size_t len, int flags)
 {
   CHECK_LE(len, INT32_MAX);
   return ::send(
@@ -169,7 +169,7 @@ inline ssize_t send(
 }
 
 
-inline ssize_t recv(const os::WindowsFD& fd, void* buf, size_t len, int flags)
+inline ssize_t recv(const os::SocketFD& fd, void* buf, size_t len, int flags)
 {
   CHECK_LE(len, INT32_MAX);
   return ::recv(fd, static_cast<char*>(buf), static_cast<int>(len), flags);

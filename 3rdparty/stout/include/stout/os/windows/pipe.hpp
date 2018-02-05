@@ -18,12 +18,14 @@
 #include <stout/error.hpp>
 #include <stout/try.hpp>
 
+#include <stout/os/windows/fd.hpp>
+
 namespace os {
 
 // Create pipes for interprocess communication. Since the pipes cannot
 // be used directly by Posix `read/write' functions they are wrapped
 // in file descriptors, a process-local concept.
-inline Try<std::array<WindowsFD, 2>> pipe()
+inline Try<std::array<HandleFD, 2>> pipe()
 {
   // Create inheritable pipe, as described in MSDN[1].
   //
@@ -43,7 +45,7 @@ inline Try<std::array<WindowsFD, 2>> pipe()
     return WindowsError();
   }
 
-  return std::array<WindowsFD, 2>{read_handle, write_handle};
+  return std::array<HandleFD, 2>{read_handle, write_handle};
 }
 
 } // namespace os {

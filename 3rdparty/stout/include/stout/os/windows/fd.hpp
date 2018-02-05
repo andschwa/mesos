@@ -21,310 +21,126 @@
 #include <stout/nothing.hpp>
 #include <stout/try.hpp>
 #include <stout/unreachable.hpp>
+#include <stout/variant.hpp>
 #include <stout/windows.hpp> // For `WinSock2.h`.
 
 namespace os {
+namespace internal {
 
-// The `WindowsFD` class exists to provide an common interface with the POSIX
-// file descriptor. While the bare `int` representation of the POSIX file
-// descriptor API is undesirable, we rendezvous there in order to maintain the
-// existing code in Mesos.
-//
-// In the platform-agnostic code paths, the `int_fd` type is aliased to
-// `WindowsFD`. The `os::*` functions return a type appropriate to the platform,
-// which allows us to write code like this:
-//
-//   Try<int_fd> fd = os::open(...);
-//
-// The `WindowsFD` constructs off one of:
-//   (1) `int` - from the WinCRT API
-//   (2) `HANDLE` - from the Win32 API
-//   (3) `SOCKET` - from the WinSock API
-//
-// The `os::*` functions then take an instance of `WindowsFD`, examines
-// the state and dispatches to the appropriate API.
+inline bool is_valid(const int crt)
+{
+  return crt >= 0;
+}
 
-class WindowsFD
+inline bool is_valid(const HANDLE handle)
+{
+  return handle != nullptr && handle != INVALID_HANDLE_VALUE;
+}
+
+inline bool is_valid(const SOCKET socket)
+{
+  return socket != INVALID_SOCKET;
+}
+
+} // namespace internal
+
+class IntFD
 {
 public:
-  enum Type
+  IntFD(int crt)
+    : crt(crt),
+      handle(
+          internal::is_valid(crt)
+            ? reinterpret_cast<HANDLE>(::_get_osfhandle(crt))
+            : INVALID_HANDLE_VALUE)
   {
-    FD_CRT,
-    FD_HANDLE,
-    FD_SOCKET
-  };
+    CHECK(internal::is_valid(crt) == internal::is_valid(handle));
+  }
 
-  WindowsFD() = default;
+  operator int() const { return crt; }
 
-  WindowsFD(int crt)
-    : type_(FD_CRT),
-      crt_(crt),
-      handle_(
-          crt < 0 ? INVALID_HANDLE_VALUE
-                  : reinterpret_cast<HANDLE>(::_get_osfhandle(crt))) {}
+  operator HANDLE() const { return handle; }
 
-  // IMPORTANT: The `HANDLE` here is expected to be file handles. Specifically,
-  //            `HANDLE`s returned by file API such as `CreateFile`. There are
-  //            APIs that return `HANDLE`s with different error values, and
-  //            therefore must be handled accordingly. For example, a thread API
-  //            such as `CreateThread` returns `NULL` as the error value, rather
-  //            than `INVALID_HANDLE_VALUE`.
-  // TODO(mpark): Consider adding a second parameter which tells us what the
-  //              error values are.
-  WindowsFD(HANDLE handle)
-    : type_(FD_HANDLE),
-      crt_(
-          handle == INVALID_HANDLE_VALUE
-            ? -1
-            : ::_open_osfhandle(reinterpret_cast<intptr_t>(handle), O_RDWR)),
-      handle_(handle) {}
+private:
+  int crt;
+  HANDLE handle;
+};
 
-  WindowsFD(SOCKET socket) : type_(FD_SOCKET), socket_(socket) {}
 
+class HandleFD
+{
+public:
+  HandleFD(HANDLE handle)
+    : crt(internal::is_valid(handle)
+            ? ::_open_osfhandle(reinterpret_cast<intptr_t>(handle), O_RDWR)
+            : -1),
+      handle(handle)
+  {
+    CHECK(internal::is_valid(crt) == internal::is_valid(handle));
+  }
+
+  operator int() const { return crt; }
+
+  operator HANDLE() const { return handle; }
+
+private:
+  int crt;
+  HANDLE handle;
+};
+
+
+class SocketFD
+{
+public:
+  SocketFD(SOCKET socket) : socket(socket) {}
   // On Windows, libevent's `evutil_socket_t` is set to `intptr_t`.
-  WindowsFD(intptr_t socket)
-    : type_(FD_SOCKET),
-      socket_(static_cast<SOCKET>(socket)) {}
+  SocketFD(intptr_t socket) : socket(static_cast<SOCKET>(socket)) {}
 
-  WindowsFD(const WindowsFD&) = default;
-  WindowsFD(WindowsFD&&) = default;
-
-  ~WindowsFD() = default;
-
-  WindowsFD& operator=(const WindowsFD&) = default;
-  WindowsFD& operator=(WindowsFD&&) = default;
-
-  int crt() const
+  operator int() const
   {
-    CHECK((type() == FD_CRT) || (type() == FD_HANDLE));
-    return crt_;
+    if (internal::is_valid(socket)) {
+      return static_cast<int>(socket);
+    } else {
+      return -1;
+    }
+  }
+
+  operator SOCKET() const { return socket; }
+
+  operator intptr_t() const { return static_cast<intptr_t>(socket); }
+
+  operator HANDLE() const { return reinterpret_cast<HANDLE>(socket); }
+
+private:
+  SOCKET socket;
+};
+
+using VariantFD = Variant<os::IntFD, os::HandleFD, os::SocketFD>;
+struct WindowsFD : VariantFD
+{
+  using VariantFD::VariantFD;
+
+  operator int() const
+  {
+    return visit(
+        [](const os::IntFD& fd) { return boost::get<os::IntFD>(fd); },
+        [](const os::HandleFD& fd) { return boost::get<os::HandleFD>(fd); },
+        [](const os::SocketFD& fd) { return boost::get<os::SocketFD>(fd); });
   }
 
   operator HANDLE() const
   {
-    switch (type()) {
-      case FD_CRT:
-      case FD_HANDLE: {
-        return handle_;
-      }
-      case FD_SOCKET: {
-        // This is safe as Windows sockets can be treated as handles.
-        return reinterpret_cast<HANDLE>(socket_);
-      }
-    }
-    UNREACHABLE();
+    return visit(
+        [](const os::IntFD& fd) { return boost::get<os::IntFD>(fd); },
+        [](const os::HandleFD& fd) { return boost::get<os::HandleFD>(fd); },
+        [](const os::SocketFD& fd) { return boost::get<os::SocketFD>(fd); });
   }
 
-  operator SOCKET() const
-  {
-    CHECK_EQ(FD_SOCKET, type());
-    return socket_;
-  }
+  operator SOCKET() const { return boost::get<SocketFD>(*this); }
 
-  operator intptr_t() const
-  {
-    CHECK_EQ(FD_SOCKET, type());
-    return static_cast<intptr_t>(socket_);
-  }
-
-  operator int() const
-  {
-    switch (type()) {
-      case FD_CRT:
-      case FD_HANDLE: {
-        return crt_;
-      }
-      case FD_SOCKET: {
-        // Users of this class expect invalid sockets to be < 0 (like in POSIX
-        // environments); however, on Windows the value is `INVALID_SOCKET`. So
-        // we check for that, and then behave "as expected" instead. This is
-        // significantly easier than fixing all socket code to check for two
-        // different error behaviors.
-        if (socket_ == INVALID_SOCKET) {
-          return -1;
-        }
-        return static_cast<int>(socket_);
-      }
-    }
-    UNREACHABLE();
-  }
-
-  Type type() const { return type_; }
-
-private:
-  Type type_;
-
-  union
-  {
-    // We keep both a CRT FD as well as a `HANDLE`
-    // regardless of whether we were constructed
-    // from a file or a handle.
-    //
-    // This is because once we request for a CRT FD
-    // from a `HANDLE`, we're required to close it
-    // via `_close`. If we were to do the conversion
-    // lazily upon request, the resulting CRT FD
-    // would be dangling.
-    struct
-    {
-      int crt_;
-      HANDLE handle_;
-    };
-    SOCKET socket_;
-  };
+  operator intptr_t() const { return static_cast<intptr_t>(boost::get<SocketFD>(*this)); }
 };
-
-
-inline std::ostream& operator<<(std::ostream& stream, const WindowsFD& fd)
-{
-  switch (fd.type()) {
-    case WindowsFD::FD_CRT: {
-      stream << fd.crt();
-      break;
-    }
-    case WindowsFD::FD_HANDLE: {
-      stream << static_cast<HANDLE>(fd);
-      break;
-    }
-    case WindowsFD::FD_SOCKET: {
-      stream << static_cast<SOCKET>(fd);
-      break;
-    }
-  }
-  return stream;
-}
-
-inline bool operator<(const WindowsFD& left, const WindowsFD& right)
-{
-  return static_cast<int>(left) < static_cast<int>(right);
-}
-
-inline bool operator<(int left, const WindowsFD& right)
-{
-  return left < static_cast<int>(right);
-}
-
-
-inline bool operator<(const WindowsFD& left, int right)
-{
-  return static_cast<int>(left) < right;
-}
-
-
-inline bool operator>(const WindowsFD& left, const WindowsFD& right)
-{
-  return right < left;
-}
-
-
-inline bool operator>(int left, const WindowsFD& right)
-{
-  return left > static_cast<int>(right);
-}
-
-
-inline bool operator>(const WindowsFD& left, int right)
-{
-  return static_cast<int>(left) > right;
-}
-
-
-inline bool operator<=(const WindowsFD& left, const WindowsFD& right)
-{
-  return !(left > right);
-}
-
-
-inline bool operator<=(int left, const WindowsFD& right)
-{
-  return left <= static_cast<int>(right);
-}
-
-
-inline bool operator<=(const WindowsFD& left, int right)
-{
-  return static_cast<int>(left) <= right;
-}
-
-
-inline bool operator>=(const WindowsFD& left, const WindowsFD& right)
-{
-  return !(left < right);
-}
-
-
-inline bool operator>=(int left, const WindowsFD& right)
-{
-  return left >= static_cast<int>(right);
-}
-
-
-inline bool operator>=(const WindowsFD& left, int right)
-{
-  return static_cast<int>(left) >= right;
-}
-
-inline bool operator==(const WindowsFD& left, const WindowsFD& right)
-{
-  return static_cast<int>(left) == static_cast<int>(right);
-}
-
-inline bool operator==(int left, const WindowsFD& right)
-{
-  return left == static_cast<int>(right);
-}
-
-
-inline bool operator==(const WindowsFD& left, int right)
-{
-  return static_cast<int>(left) == right;
-}
-
-
-inline bool operator!=(const WindowsFD& left, const WindowsFD& right)
-{
-  return !(left == right);
-}
-
-
-inline bool operator!=(int left, const WindowsFD& right)
-{
-  return left != static_cast<int>(right);
-}
-
-
-inline bool operator!=(const WindowsFD& left, int right)
-{
-  return static_cast<int>(left) != right;
-}
 
 } // namespace os {
-
-namespace std {
-
-template <>
-struct hash<os::WindowsFD>
-{
-  using argument_type = os::WindowsFD;
-  using result_type = size_t;
-
-  result_type operator()(const argument_type& fd) const
-  {
-    switch (fd.type()) {
-      case os::WindowsFD::FD_CRT: {
-        return static_cast<result_type>(fd.crt());
-      }
-      case os::WindowsFD::FD_HANDLE: {
-        return reinterpret_cast<result_type>(static_cast<HANDLE>(fd));
-      }
-      case os::WindowsFD::FD_SOCKET: {
-        return static_cast<result_type>(static_cast<SOCKET>(fd));
-      }
-    }
-    UNREACHABLE();
-  }
-};
-
-} // namespace std {
 
 #endif // __STOUT_OS_WINDOWS_FD_HPP__

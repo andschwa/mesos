@@ -33,7 +33,7 @@
 
 namespace os {
 
-inline Try<Nothing> cloexec(const WindowsFD& fd)
+inline Try<Nothing> cloexec(const int_fd& fd)
 {
   if (::SetHandleInformation(fd, HANDLE_FLAG_INHERIT, 0)) {
     return Nothing();
@@ -43,19 +43,18 @@ inline Try<Nothing> cloexec(const WindowsFD& fd)
 }
 
 
-inline Try<Nothing> unsetCloexec(const WindowsFD& fd)
+inline Try<Nothing> unsetCloexec(const int_fd& fd)
 {
   if (::SetHandleInformation(fd, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT)) {
     return Nothing();
   } else {
-    return WindowsError("`os::unsetCloexec` failed for CRT or HANDLE");
+    return WindowsError("`os::unsetCloexec` failed");
   }
 }
 
 
-inline Try<bool> isCloexec(const WindowsFD& fd)
+inline Try<bool> isCloexec(const int_fd& fd)
 {
-  // This works for all cases of `fd.type()`.
   DWORD flags;
   if (::GetHandleInformation(fd, &flags)) {
     return flags != HANDLE_FLAG_INHERIT;
@@ -64,32 +63,25 @@ inline Try<bool> isCloexec(const WindowsFD& fd)
   }
 }
 
-
-inline Try<Nothing> nonblock(const WindowsFD& fd)
+inline Try<Nothing> nonblock(const int_fd& fd)
 {
-  switch (fd.type()) {
-    case WindowsFD::FD_CRT:
-    case WindowsFD::FD_HANDLE: {
-      /* Do nothing. */
-      break;
-    }
-    case WindowsFD::FD_SOCKET: {
-      const u_long non_block_mode = 1;
-      u_long mode = non_block_mode;
+  return fd.visit(
+      [](const os::IntFD& fd) { return Nothing(); },
+      [](const os::HandleFD& fd) { return Nothing(); },
+      [](const os::SocketFD& fd) {
+        const u_long non_block_mode = 1;
+        u_long mode = non_block_mode;
 
-      int result = ::ioctlsocket(fd, FIONBIO, &mode);
-      if (result != NO_ERROR) {
-        return WindowsSocketError();
-      }
-      break;
-    }
-  }
-  return Nothing();
+        const int result = ::ioctlsocket(fd, FIONBIO, &mode);
+        if (result != NO_ERROR) {
+          return WindowsSocketError();
+        }
+        return Nothing();
+      });
 }
 
-
 // NOTE: This is not supported on Windows.
-inline Try<bool> isNonblock(const WindowsFD& fd)
+inline Try<bool> isNonblock(const int_fd& fd)
 {
   VLOG(2) << "`os::isNonblock` has been called, but is a stub on Windows";
   return true;

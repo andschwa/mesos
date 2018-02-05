@@ -24,32 +24,35 @@
 
 namespace os {
 
-inline Try<Nothing> close(const WindowsFD& fd)
+inline Try<Nothing> close(const int_fd& fd)
 {
-  switch (fd.type()) {
-    case WindowsFD::FD_CRT:
-    case WindowsFD::FD_HANDLE: {
-      // We don't need to call `CloseHandle` on `fd.handle`, because calling
+  return fd.visit(
+      // We don't need to call `CloseHandle` because calling
       // `_close` on the corresponding CRT FD implicitly invokes `CloseHandle`.
-      if (::_close(fd.crt()) < 0) {
-        return ErrnoError();
-      }
-      break;
-    }
-    case WindowsFD::FD_SOCKET: {
-      // NOTE: Since closing an unconnected socket is not an error in POSIX,
-      // we simply ignore it here.
-      if (::shutdown(fd, SD_BOTH) == SOCKET_ERROR &&
-          WSAGetLastError() != WSAENOTCONN) {
-        return WindowsSocketError("Failed to shutdown a socket");
-      }
-      if (::closesocket(fd) == SOCKET_ERROR) {
-        return WindowsSocketError("Failed to close a socket");
-      }
-      break;
-    }
-  }
-  return Nothing();
+      [](const os::IntFD& fd) -> Try<Nothing> {
+        if (::_close(fd) < 0) {
+          return ErrnoError();
+        }
+        return Nothing();
+      },
+      [](const os::HandleFD& fd) -> Try<Nothing> {
+        if (::_close(fd) < 0) {
+          return ErrnoError();
+        }
+        return Nothing();
+      },
+      [](const os::SocketFD& fd) -> Try<Nothing> {
+        // NOTE: Since closing an unconnected socket is not an error in POSIX,
+        // we simply ignore it here.
+        if (::shutdown(fd, SD_BOTH) == SOCKET_ERROR &&
+            WSAGetLastError() != WSAENOTCONN) {
+          return WindowsSocketError("Failed to shutdown a socket");
+        }
+        if (::closesocket(fd) == SOCKET_ERROR) {
+          return WindowsSocketError("Failed to close a socket");
+        }
+        return Nothing();
+      });
 }
 
 } // namespace os {

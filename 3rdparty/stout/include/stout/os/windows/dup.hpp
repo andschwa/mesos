@@ -22,29 +22,37 @@
 
 namespace os {
 
-inline Try<WindowsFD> dup(const WindowsFD& fd)
+inline Try<int_fd> dup(const int_fd& fd)
 {
-  switch (fd.type()) {
-    case WindowsFD::FD_CRT:
-    case WindowsFD::FD_HANDLE: {
-      // TODO(andschwa): Replace this with `::DuplicateHandle` after figuring
-      // out how to make it compatible with handles to stdin/stdout/stderr.
-      int result = ::_dup(fd.crt());
-      if (result == -1) {
-        return ErrnoError();
-      }
-      return result;
-    }
-    case WindowsFD::FD_SOCKET: {
-      WSAPROTOCOL_INFOW info;
-      const int result = ::WSADuplicateSocketW(fd, ::GetCurrentProcessId(), &info);
-      if (result != 0) {
-        return SocketError();
-      }
-      return ::WSASocketW(0, 0, 0, &info, 0, 0);
-    }
-  }
-  UNREACHABLE();
+  return fd.visit(
+      [](const os::IntFD& fd) -> Try<int_fd> {
+        int result = ::_dup(fd);
+        if (result == -1) {
+          return ErrnoError();
+        }
+        return result;
+
+      },
+      [](const os::HandleFD& fd) -> Try<int_fd> {
+        // TODO(andschwa): Replace this with `::DuplicateHandle` after figuring
+        // out how to make it compatible with handles to stdin/stdout/stderr.
+        int result = ::_dup(fd);
+        if (result == -1) {
+          return ErrnoError();
+        }
+        return result;
+
+      },
+      [](const os::SocketFD& fd) -> Try<int_fd> {
+        WSAPROTOCOL_INFOW info;
+        const int result =
+          ::WSADuplicateSocketW(fd, ::GetCurrentProcessId(), &info);
+        if (result != 0) {
+          return SocketError();
+        }
+        return ::WSASocketW(0, 0, 0, &info, 0, 0);
+
+      });
 }
 
 } // namespace os {

@@ -27,7 +27,7 @@ namespace os {
 // descriptor to the output socket.
 // On error, `Try<ssize_t, SocketError>` contains the error.
 inline Try<ssize_t, SocketError> sendfile(
-    const WindowsFD& s, const WindowsFD& fd, off_t offset, size_t length)
+    const SocketFD& s, const SocketFD& fd, off_t offset, size_t length)
 {
   // NOTE: We convert the `offset` here to avoid potential data loss
   // in the type casting and bitshifting below.
@@ -40,7 +40,7 @@ inline Try<ssize_t, SocketError> sendfile(
       nullptr};
 
   CHECK_LE(length, MAXDWORD);
-  if (TransmitFile(
+  if (::TransmitFile(
           s,
           fd,
           static_cast<DWORD>(length),
@@ -48,12 +48,12 @@ inline Try<ssize_t, SocketError> sendfile(
           &from,
           nullptr,
           0) == FALSE &&
-      (WSAGetLastError() == WSA_IO_PENDING ||
-       WSAGetLastError() == ERROR_IO_PENDING)) {
+      (::WSAGetLastError() == WSA_IO_PENDING ||
+       ::WSAGetLastError() == ERROR_IO_PENDING)) {
     DWORD sent = 0;
     DWORD flags = 0;
 
-    if (WSAGetOverlappedResult(s, &from, &sent, TRUE, &flags) == TRUE) {
+    if (::WSAGetOverlappedResult(s, &from, &sent, TRUE, &flags) == TRUE) {
       return sent;
     }
   }

@@ -25,21 +25,20 @@
 
 namespace os {
 
-inline ssize_t read(const WindowsFD& fd, void* data, size_t size)
+inline ssize_t read(const int_fd& fd, void* data, size_t size)
 {
   CHECK_LE(size, UINT_MAX);
 
-  switch (fd.type()) {
-    case WindowsFD::FD_CRT:
-    case WindowsFD::FD_HANDLE: {
-      return ::_read(fd.crt(), data, static_cast<unsigned int>(size));
-    }
-    case WindowsFD::FD_SOCKET: {
-      return ::recv(fd, (char*)data, static_cast<unsigned int>(size), 0);
-    }
-  }
-
-  UNREACHABLE();
+  return fd.visit(
+      [data, size](const os::IntFD& fd) {
+        return ::_read(fd, data, static_cast<unsigned int>(size));
+      },
+      [data, size](const os::HandleFD& fd) {
+        return ::_read(fd, data, static_cast<unsigned int>(size));
+      },
+      [data, size](const os::SocketFD& fd) {
+        return ::recv(fd, (char*)data, static_cast<unsigned int>(size), 0);
+      });
 }
 
 } // namespace os {
