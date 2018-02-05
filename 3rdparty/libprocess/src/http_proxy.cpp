@@ -150,6 +150,9 @@ bool HttpProxy::process(const Future<Response>& future, const Request& request)
     response.body.clear();
 
     const string& path = response.path;
+
+    // TODO(andschwa): Remove CRT function on Windows by abstraction, see
+    // MESOS-8275.
     int_fd fd = open(path.c_str(), O_RDONLY);
     if (fd < 0) {
       if (errno == ENOENT || errno == ENOTDIR) {
@@ -165,11 +168,10 @@ bool HttpProxy::process(const Future<Response>& future, const Request& request)
       // We don't bother introducing a `os::fstat` since this is only
       // one of two places where we use `fstat` in the entire codebase
       // as of writing this comment.
-#ifdef __WINDOWS__
-      if (::fstat(fd.crt(), &s) != 0) {
-#else
+      //
+      // TODO(andschwa): Remove CRT function on Windows by abstraction, see
+      // MESOS-8275.
       if (::fstat(fd, &s) != 0) {
-#endif
         const string error = os::strerror(errno);
         VLOG(1) << "Failed to send file at '" << path << "': " << error;
         socket_manager->send(InternalServerError(), request, socket);

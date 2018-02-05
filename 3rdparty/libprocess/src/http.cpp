@@ -1553,11 +1553,10 @@ Future<Nothing> sendfile(
   // We don't bother introducing a `os::fstat` since this is only
   // one of two places where we use `fstat` in the entire codebase
   // as of writing this comment.
-#ifdef __WINDOWS__
-  if (::fstat(fd->crt(), &s) != 0) {
-#else
+  //
+  // TODO(andschwa): Remove CRT function on Windows by abstraction, see
+  // MESOS-8275.
   if (::fstat(fd.get(), &s) != 0) {
-#endif
     const string body =
       "Failed to fstat '" + response.path + "': " + os::strerror(errno);
     // TODO(benh): VLOG(1)?
