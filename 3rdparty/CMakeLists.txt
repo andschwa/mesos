@@ -439,7 +439,9 @@ if (ENABLE_LIBEVENT)
     set_target_properties(
       libevent PROPERTIES
       IMPORTED_LOCATION_DEBUG ${LIBEVENT_ROOT}-build/lib/Debug/event${LIBRARY_SUFFIX}
-      IMPORTED_LOCATION_RELEASE ${LIBEVENT_ROOT}-build/lib/Release/event${LIBRARY_SUFFIX})
+      IMPORTED_LOCATION_RELEASE ${LIBEVENT_ROOT}-build/lib/Release/event${LIBRARY_SUFFIX}
+      IMPORTED_IMPLIB_DEBUG ${LIBEVENT_ROOT}-build/lib/Debug/event${CMAKE_IMPORT_LIBRARY_SUFFIX}
+      IMPORTED_IMPLIB_RELEASE ${LIBEVENT_ROOT}-build/lib/Release/event${CMAKE_IMPORT_LIBRARY_SUFFIX})
   else ()
     set_target_properties(
       libevent PROPERTIES
@@ -768,6 +770,7 @@ ExternalProject_Add(
 EXTERNAL(protobuf ${PROTOBUF_VERSION} ${CMAKE_CURRENT_BINARY_DIR})
 
 # TODO(andschwa): Move protobufs so these don't have to be GLOBAL.
+<<<<<<< Updated upstream
 add_library(protobuf ${LIBRARY_LINKAGE} IMPORTED GLOBAL)
 
 add_dependencies(protobuf ${PROTOBUF_TARGET})
@@ -776,9 +779,30 @@ add_dependencies(protoc ${PROTOBUF_TARGET})
 
 set_target_properties(
   protobuf PROPERTIES
+=======
+external(protobuf ${PROTOBUF_VERSION} ${CMAKE_CURRENT_BINARY_DIR})
+if (WIN32)
+  # Shared library builds are not yet supported on Windows.
+  set(PROTOBUF_LINKAGE STATIC)
+else ()
+  # Static library builds are unsupported on Linux, as linking each Mesos module
+  # to a static version of libprotobuf results in the error "File already exists
+  # in database":
+  # https://github.com/google/protobuf/issues/1941
+  set(PROTOBUF_LINKAGE SHARED)
+endif ()
+add_library(protobuf ${PROTOBUF_LINKAGE} IMPORTED GLOBAL)
+add_dependencies(protobuf ${PROTOBUF_TARGET})
+add_executable(protoc IMPORTED GLOBAL)
+add_dependencies(protoc ${PROTOBUF_TARGET})
+# Disable building tests
+set(PROTOBUF_CMAKE_FORWARD_ARGS ${CMAKE_FORWARD_ARGS} -Dprotobuf_BUILD_TESTS=OFF)
+set_target_properties(protobuf PROPERTIES
+>>>>>>> Stashed changes
   INTERFACE_INCLUDE_DIRECTORIES ${PROTOBUF_ROOT}/src)
 
 if (WIN32)
+<<<<<<< Updated upstream
   set_target_properties(
     protobuf PROPERTIES
     IMPORTED_LOCATION_DEBUG ${PROTOBUF_ROOT}-build/Debug/libprotobufd${LIBRARY_SUFFIX}
@@ -788,6 +812,13 @@ if (WIN32)
 
   set_target_properties(
     protoc PROPERTIES
+=======
+  list(APPEND PROTOBUF_CMAKE_FORWARD_ARGS -DBUILD_SHARED_LIBS=OFF)
+  set_target_properties(protobuf PROPERTIES
+    IMPORTED_LOCATION_DEBUG ${PROTOBUF_ROOT}-build/Debug/libprotobufd${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_RELEASE ${PROTOBUF_ROOT}-build/Release/libprotobuf${CMAKE_STATIC_LIBRARY_SUFFIX})
+  set_target_properties(protoc PROPERTIES
+>>>>>>> Stashed changes
     IMPORTED_LOCATION_DEBUG ${PROTOBUF_ROOT}-build/Debug/protoc.exe
     IMPORTED_LOCATION_RELEASE ${PROTOBUF_ROOT}-build/Release/protoc.exe)
 else ()
@@ -795,6 +826,7 @@ else ()
   if (CMAKE_BUILD_TYPE MATCHES Debug)
     set(PROTOBUF_SUFFIX d)
   endif ()
+<<<<<<< Updated upstream
 
   set_target_properties(
     protobuf PROPERTIES
@@ -802,6 +834,12 @@ else ()
 
   set_target_properties(
     protoc PROPERTIES
+=======
+  list(APPEND PROTOBUF_CMAKE_FORWARD_ARGS -DBUILD_SHARED_LIBS=ON)
+  set_target_properties(protobuf PROPERTIES
+    IMPORTED_LOCATION ${PROTOBUF_ROOT}-build/libprotobuf${PROTOBUF_SUFFIX}${CMAKE_SHARED_LIBRARY_SUFFIX})
+  set_target_properties(protoc PROPERTIES
+>>>>>>> Stashed changes
     IMPORTED_LOCATION ${PROTOBUF_ROOT}-build/protoc)
 endif ()
 
@@ -814,7 +852,7 @@ ExternalProject_Add(
   PATCH_COMMAND     ${PROTOBUF_PATCH_CMD}
   BUILD_BYPRODUCTS  ${PROTOBUF_BYPRODUCTS}
   SOURCE_SUBDIR     cmake
-  CMAKE_ARGS        ${CMAKE_FORWARD_ARGS};-Dprotobuf_BUILD_TESTS=OFF
+  CMAKE_ARGS        ${PROTOBUF_CMAKE_FORWARD_ARGS}
   INSTALL_COMMAND   ${CMAKE_NOOP}
   URL               ${PROTOBUF_URL}
   URL_HASH          ${PROTOBUF_HASH})

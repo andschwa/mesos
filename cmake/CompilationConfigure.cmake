@@ -301,7 +301,9 @@ if (WIN32)
 
   # Build against the multi-threaded version of the C runtime library (CRT).
   if (BUILD_SHARED_LIBS)
-    message(WARNING "Building with shared libraries is a work-in-progress.")
+    message(WARNING
+      "Building with shared libraries is a work-in-progress.\n"
+      "See MESOS-XXXX for more information.")
 
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 
