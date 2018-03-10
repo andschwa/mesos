@@ -1,0 +1,35 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f8d430c..bcbf0e0 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -166,7 +166,7 @@ IF (MSVC)
+   #                       result of an assignment.
+   SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /we4706")
+   # /WX option is the same as gcc's -Werror option.
+-  SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /WX")
++  #SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /WX")
+   # /Oi option enables built-in functions.
+   SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Oi")
+   #################################################################
+@@ -350,10 +350,9 @@ ENDMACRO (TRY_MACRO_FOR_LIBRARY)
+ #
+ # Check compress/decompress libraries
+ #
+-IF(WIN32 AND NOT CMAKE_CL_64 AND NOT CYGWIN)
+-  # GnuWin32 is only for Win32, not Win64.
++IF(WIN32 AND NOT CYGWIN)
+   SET(__GNUWIN32PATH "C:/Program Files/GnuWin32")
+-ENDIF(WIN32 AND NOT CMAKE_CL_64 AND NOT CYGWIN)
++ENDIF(WIN32 AND NOT CYGWIN)
+ IF(DEFINED __GNUWIN32PATH AND EXISTS "${__GNUWIN32PATH}")
+   # You have to add a path availabel DLL file into PATH environment variable.
+   # Maybe DLL path is "C:/Program Files/GnuWin32/bin".
+@@ -934,7 +933,7 @@ MACRO(CHECK_ICONV LIB TRY_ICONV_CONST)
+     ENDIF (CMAKE_C_COMPILER_ID MATCHES "^XL$")
+     IF (MSVC)
+       # NOTE: /WX option is the same as gcc's -Werror option.
+-      SET(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} /WX")
++      #SET(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} /WX")
+     ENDIF (MSVC)
+     #
+     CHECK_C_SOURCE_COMPILES(
