@@ -22,6 +22,7 @@ target_include_directories(stout INTERFACE include)
 target_link_libraries(
   stout INTERFACE
   apr
+  archive
   boost
   libcurl
   elfio
