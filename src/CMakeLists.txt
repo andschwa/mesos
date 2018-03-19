@@ -14,6 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TREAT WARNINGS AS ERRORS.
+###########################
+# We add these flags using `add_compiler_options` on purpose because
+# we want it set by default for all targets in this directory
+# recursively.
+if (ENABLE_WERROR)
+  if (CMAKE_CXX_COMPILER_ID MATCHES MSVC)
+    add_compile_options(/WX)
+  else ()
+    add_compile_options(-Werror)
+  endif ()
+endif ()
+
+
 # GENERATE PUBLIC AND INTERNAL PROTOBUFS.
 #########################################
 include(MesosProtobuf)

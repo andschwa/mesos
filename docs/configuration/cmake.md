@@ -31,6 +31,15 @@ See more information in the [CMake documentation](../cmake.md).
   </tr>
   <tr>
     <td>
+      -DENABLE_WERROR=(TRUE|FALSE)
+    </td>
+    <td>
+      Treat compiler warnings as errors for the Mesos code.
+      (Does not apply to third-party code.) [default=TRUE]
+    </td>
+  </tr>
+  <tr>
+    <td>
       -DBUILD_SHARED_LIBS=(TRUE|FALSE)
     </td>
     <td>

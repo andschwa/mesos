@@ -23,6 +23,26 @@ option(VERBOSE
   TRUE)
 set(CMAKE_VERBOSE_MAKEFILE ${VERBOSE})
 
+option(ENABLE_WERROR
+  "Treat compiler warnings as errors."
+  TRUE)
+
+# Treat compiler warnings as errors for each given target, privately.
+function(SET_WERROR)
+  set(multiValueArgs TARGETS)
+  cmake_parse_arguments(SET_WERROR "" "" "${multiValueArgs}" ${ARGN})
+
+  foreach (TARGET ${SET_WERROR_TARGETS})
+    if (ENABLE_WERROR)
+      if (CMAKE_CXX_COMPILER_ID MATCHES MSVC)
+        target_compile_options(${TARGET} PRIVATE /WX)
+      else ()
+        target_compile_options(${TARGET} PRIVATE -Werror)
+      endif ()
+    endif ()
+  endforeach ()
+endfunction()
+
 if (NOT WIN32)
   set(DEFAULT_BUILD_SHARED_LIBS TRUE)
 else ()
