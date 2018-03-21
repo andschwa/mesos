@@ -477,13 +477,6 @@ TEST_F(FsTest, Rename)
 
 TEST_F(FsTest, Close)
 {
-#ifdef __WINDOWS__
-  // On Windows, CRT functions like `_close` will cause an assert dialog box
-  // to pop up if you pass them a bad file descriptor. For this test, we prefer
-  // to just have the functions error out.
-  const int previous_report_mode = _CrtSetReportMode(_CRT_ASSERT, 0);
-#endif // __WINDOWS__
-
   const string testfile =
     path::join(os::getcwd(), id::UUID::random().toString());
 
@@ -546,7 +539,13 @@ TEST_F(FsTest, Close)
   ASSERT_EQ(test_message1 + test_message1, read_valid_handle.get());
 #endif // __WINDOWS__
 
+#ifdef __WINDOWS__
   // Try `close` with invalid file descriptor.
+  EXPECT_ERROR(os::close(INVALID_HANDLE_VALUE));
+#endif // __WINDOWS__
+
+  // Try `close` with invalid file descriptor.
+  // NOTE: This should work on both Windows and POSIX.
   EXPECT_ERROR(os::close(static_cast<int>(-1)));
 
 #ifdef __WINDOWS__
@@ -554,11 +553,6 @@ TEST_F(FsTest, Close)
   EXPECT_ERROR(os::close(static_cast<SOCKET>(INVALID_SOCKET)));
   EXPECT_ERROR(os::close(INVALID_SOCKET));
   EXPECT_ERROR(os::close(static_cast<HANDLE>(open_valid_handle)));
-#endif // __WINDOWS__
-
-#ifdef __WINDOWS__
-  // Reset the CRT assert dialog settings.
-  _CrtSetReportMode(_CRT_ASSERT, previous_report_mode);
 #endif // __WINDOWS__
 }
 
