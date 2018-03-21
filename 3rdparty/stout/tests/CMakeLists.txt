@@ -17,12 +17,12 @@
 # STOUT TESTS.
 ##############
 set(STOUT_ROOT_TESTS_SRC
+  archiver_tests.cpp
   base64_tests.cpp
   bits_tests.cpp
   bytes_tests.cpp
   cache_tests.cpp
   cpp17_tests.cpp
-  decompress_tests.cpp
   duration_tests.cpp
   dynamiclibrary_tests.cpp
   error_tests.cpp

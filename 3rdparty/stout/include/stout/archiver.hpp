@@ -28,7 +28,7 @@
 #include <stout/path.hpp>
 #include <stout/try.hpp>
 
-namespace decompress {
+namespace archiver {
 
 // Flags can be any of (or together):
 //   ARCHIVE_EXTRACT_ACL
@@ -151,6 +151,6 @@ inline Try<Nothing> extract(
   return Nothing();
 }
 
-} // namespace decompress {
+} // namespace archiver {
 
 #endif // __STOUT_DECOMPRESS_HPP__

@@ -12,8 +12,8 @@
 
 #include <string>
 
+#include <stout/archiver.hpp>
 #include <stout/base64.hpp>
-#include <stout/decompress.hpp>
 #include <stout/gtest.hpp>
 #include <stout/os.hpp>
 #include <stout/os/write.hpp>
@@ -23,16 +23,16 @@
 using std::string;
 
 
-class DecompressTest : public TemporaryDirectoryTest {};
+class ArchiverTest : public TemporaryDirectoryTest {};
 
 // No input file should return some error, not read from stdin.
-TEST_F(DecompressTest, DecompressEmptyInputFile)
+TEST_F(ArchiverTest, ExtractEmptyInputFile)
 {
-  EXPECT_ERROR(decompress::extract("", ""));
+  EXPECT_ERROR(archiver::extract("", ""));
 }
 
 // File that does not exist should return some error.
-TEST_F(DecompressTest, DecompressInputFileNotFound)
+TEST_F(ArchiverTest, ExtractInputFileNotFound)
 {
   // Construct a temporary file path that is guarenteed unique.
   Try<string> dir = os::mkdtemp(path::join(os::getcwd(), "XXXXXX"));
@@ -40,12 +40,12 @@ TEST_F(DecompressTest, DecompressInputFileNotFound)
 
   string path = path::join(dir.get(), "ThisFileDoesNotExist");
 
-  EXPECT_ERROR(decompress::extract(path, ""));
+  EXPECT_ERROR(archiver::extract(path, ""));
 }
 
-TEST_F(DecompressTest, DecompressTarGzFile)
+TEST_F(ArchiverTest, ExtractTarGzFile)
 {
-  // Construct a hello.tar.gz file that can be decompressed
+  // Construct a hello.tar.gz file that can be extracted
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
 
@@ -68,7 +68,7 @@ TEST_F(DecompressTest, DecompressTarGzFile)
   // it, but libarchive doesn't care about extensions. It determines
   // the format from the contents of the file. So this is tested here
   // as well.
-  EXPECT_SOME(decompress::extract(path.get(), ""));
+  EXPECT_SOME(archiver::extract(path.get(), ""));
 
   string extractedFile = path::join(os::getcwd(), "hello");
   ASSERT_TRUE(os::exists(extractedFile));
@@ -77,9 +77,9 @@ TEST_F(DecompressTest, DecompressTarGzFile)
 }
 
 
-TEST_F(DecompressTest, DecompressTarFile)
+TEST_F(ArchiverTest, ExtractTarFile)
 {
-  // Construct a hello.tar file that can be decompressed
+  // Construct a hello.tar file that can be extracted
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
 
@@ -124,7 +124,7 @@ TEST_F(DecompressTest, DecompressTarFile)
 
   ASSERT_SOME(os::write(path.get(), base64::decode(tarContents).get()));
 
-  EXPECT_SOME(decompress::extract(path.get(), ""));
+  EXPECT_SOME(archiver::extract(path.get(), ""));
 
   string extractedFile = path::join(os::getcwd(), "hello");
   ASSERT_TRUE(os::exists(extractedFile));
@@ -133,9 +133,9 @@ TEST_F(DecompressTest, DecompressTarFile)
 }
 
 
-TEST_F(DecompressTest, DecompressZipFile)
+TEST_F(ArchiverTest, ExtractZipFile)
 {
-  // Construct a hello.zip file that can be decompressed
+  // Construct a hello.zip file that can be extracted
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
 
@@ -155,7 +155,7 @@ TEST_F(DecompressTest, DecompressZipFile)
       "AAAAaGVsbG9VVAUAA+SSlFp1eAsAAQToAwAABOgDAABQSwUGAAAAAAEAAQBL"
       "AAAAXAAAAAAA").get()));
 
-  EXPECT_SOME(decompress::extract(path.get(), ""));
+  EXPECT_SOME(archiver::extract(path.get(), ""));
 
   string extractedFile = path::join(os::getcwd(), "hello");
   ASSERT_TRUE(os::exists(extractedFile));
@@ -164,9 +164,9 @@ TEST_F(DecompressTest, DecompressZipFile)
 }
 
 
-TEST_F(DecompressTest, DecompressInvalidZipFile)
+TEST_F(ArchiverTest, ExtractInvalidZipFile)
 {
-  // Construct a hello.zip file that can be decompressed
+  // Construct a hello.zip file that can be extracted
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
 
@@ -186,11 +186,11 @@ TEST_F(DecompressTest, DecompressInvalidZipFile)
       "SC07CK8MAAAADAAAAAUAGAAAAAAAAQAAAKSBAAAAAHdvcmxkVVQFAAMQF+1W"
       "dXgLAAEE6AMAAARkAAAAUEsFBgAAAAABAAEASwAAAEsAAAAAAA==").get()));
 
-  EXPECT_ERROR(decompress::extract(path.get(), ""));
+  EXPECT_ERROR(archiver::extract(path.get(), ""));
 }
 
 
-TEST_F(DecompressTest, DecompressZipFileWithDuplicatedEntries)
+TEST_F(ArchiverTest, ExtractZipFileWithDuplicatedEntries)
 {
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
@@ -212,7 +212,7 @@ TEST_F(DecompressTest, DecompressZipFileWithDuplicatedEntries)
       "AAABAAAAAAAAAAAAAACAAQAAAABBUEsBAhQDFAAAAAAAMrZySA2+1RoBAAAA"
       "AQAAAAEAAAAAAAAAAAAAAIABIAAAAEFQSwUGAAAAAAIAAgBeAAAAQAAAAAAA").get()));
 
-  EXPECT_SOME(decompress::extract(path.get(), ""));
+  EXPECT_SOME(archiver::extract(path.get(), ""));
 
   string extractedFile = path::join(os::getcwd(), "A");
   ASSERT_TRUE(os::exists(extractedFile));
@@ -221,7 +221,7 @@ TEST_F(DecompressTest, DecompressZipFileWithDuplicatedEntries)
 }
 
 
-TEST_F(DecompressTest, DecompressTarXZFile)
+TEST_F(ArchiverTest, ExtractTarXZFile)
 {
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
@@ -244,7 +244,7 @@ TEST_F(DecompressTest, DecompressTarXZFile)
        "K6NqFHAjzSaANcbNj+iFfqY3sC/mAAAAADpda78LIiMIAAGaAYBQAADDUC3D"
        "scRn+wIAAAAABFla").get()));
 
-  EXPECT_SOME(decompress::extract(path.get(), ""));
+  EXPECT_SOME(archiver::extract(path.get(), ""));
 
   string extractedFile = path::join(os::getcwd(), "hello");
   ASSERT_TRUE(os::exists(extractedFile));
@@ -253,7 +253,7 @@ TEST_F(DecompressTest, DecompressTarXZFile)
 }
 
 
-TEST_F(DecompressTest, DecompressTarBZ2File)
+TEST_F(ArchiverTest, ExtractTarBZ2File)
 {
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
@@ -275,7 +275,7 @@ TEST_F(DecompressTest, DecompressTarBZ2File)
        "IUI0Yww9tmran651Du0Hk5ZN4pbSxgs5xlAlIjtgOImyv+auHhIXnipV/xXy"
        "iIHQu5IpwoSE0fQtMA==").get()));
 
-  EXPECT_SOME(decompress::extract(path.get(), ""));
+  EXPECT_SOME(archiver::extract(path.get(), ""));
 
   string extractedFile = path::join(os::getcwd(), "hello");
   ASSERT_TRUE(os::exists(extractedFile));
@@ -284,7 +284,7 @@ TEST_F(DecompressTest, DecompressTarBZ2File)
 }
 
 
-TEST_F(DecompressTest, DecompressTarBz2GzFile)
+TEST_F(ArchiverTest, ExtractTarBz2GzFile)
 {
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
@@ -295,7 +295,7 @@ TEST_F(DecompressTest, DecompressTarBz2GzFile)
   // Create an tar.bz2.gz compressed file
   //
   // Verify that archives compressed twice (in this case, .bzip2.gz)
-  // work. libarchive will keep processing until fully decompressed.
+  // work. libarchive will keep processing until fully extracted.
   //
   //  Length     Size     Date    Time  Name    Content
   // --------  ------- ---------- ----- ----    ------
@@ -310,7 +310,7 @@ TEST_F(DecompressTest, DecompressTarBz2GzFile)
        "lk3iltLGCznGUCUiO2A4ibK/5q4eEheeKlX/FfKIgdC7kinChITR9C0wSQeY"
        "TJQAAAA=").get()));
 
-  EXPECT_SOME(decompress::extract(path.get(), ""));
+  EXPECT_SOME(archiver::extract(path.get(), ""));
 
   string extractedFile = path::join(os::getcwd(), "hello");
   ASSERT_TRUE(os::exists(extractedFile));
@@ -319,7 +319,7 @@ TEST_F(DecompressTest, DecompressTarBz2GzFile)
 }
 
 
-TEST_F(DecompressTest, DecompressBz2FileFails)
+TEST_F(ArchiverTest, ExtractBz2FileFails)
 {
   string dir = path::join(os::getcwd(), "somedir");
   ASSERT_SOME(os::mkdir(dir));
@@ -343,5 +343,5 @@ TEST_F(DecompressTest, DecompressBz2FileFails)
        "QlpoOTFBWSZTWTMaBKkAAANdgAAQQGAQAABAFiTQkCAAIhGCD1HoUwAE0auv"
        "Imhs/86EgGxdyRThQkDMaBKk").get()));
 
-  EXPECT_ERROR(decompress::extract(path.get(), ""));
+  EXPECT_ERROR(archiver::extract(path.get(), ""));
 }
