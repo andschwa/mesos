@@ -23,24 +23,12 @@
 #include <glog/logging.h>
 
 #include <stout/nothing.hpp>
+#include <stout/os/int_fd.hpp>
+#include <stout/os/open.hpp>
 #include <stout/path.hpp>
 #include <stout/try.hpp>
 
 namespace decompress {
-
-enum Format
-{
-  // These are a subset of formats supported by libarchive, but this
-  // is likely all that Mesos cares about.
-  FORMAT_ANY = 0,
-  FORMAT_BZIP2,
-  FORMAT_COMPRESS,
-  FORMAT_CPIO,
-  FORMAT_GZIP,
-  FORMAT_TAR,
-  FORMAT_ZIP
-};
-
 
 // Flags can be any of (or together):
 //   ARCHIVE_EXTRACT_ACL
@@ -51,24 +39,11 @@ enum Format
 inline Try<Nothing> extract(
     const std::string& source,
     const std::string& destination,
-    int format = Format::FORMAT_ANY,
     int flags = ARCHIVE_EXTRACT_TIME)
 {
-  // TODO(jeffaco): Determine how to tell libarchive where to put destination
-
-  // libdecompress, if no filename is specified, will try to read from stdin.
-  // This is one quick way to avoid that.
-  // TODO(jeffaco): Can stdin be disabled from libarchive programmatically?
-  if (source.empty())
-  {
-    return Error("No filename specified to decompress");
-  }
+  // TODO(jeffaco): See notes on supporting destination, below
 
   // Get references to libarchive for reading/handling a compressed file
-  // TODO(jeffaco): We only support FORMAT_ANY for now. Consider if this
-  //     should be restricted to specific formats or return an error if
-  //     format doesn't match. By default, libarchive will examine the
-  //     data stream to figure out what the format is and then just use it.
 
   std::unique_ptr<struct archive, std::function<void(struct archive*)>> reader(
       archive_read_new(),
@@ -85,16 +60,25 @@ inline Try<Nothing> extract(
   archive_write_disk_set_standard_lookup(writer.get());
 
   // Open the compressed file for decompression
-  // TODO(jeffaco): A fair amount of work was done to support Unicode
-  //     and long paths. Callback for opening file? Or some way to pass
-  //     a handle? If not, investigate if this will work properly on
-  //     all of our platforms.
-  int result;
-  if (result = archive_read_open_filename(
+  // We do not use libarchive to open the file to insure we have proper
+  // Unicode and long path handling on both Linux and Windows.
+  Try<int_fd> fd = os::open(source, O_RDONLY | O_CLOEXEC, 0);
+
+  if (fd.isError()) {
+    return Error("Failed to open file '" + source + "': " + fd.error());
+  }
+
+  // Be certain that the input archive is closed on exit
+  int_fd fd_real = fd.get();
+  std::unique_ptr<int_fd, std::function<void(int_fd*)>> fd_closer(
+      &fd_real,
+      [](int_fd* fd) { os::close(*fd); });
+
+  int result = archive_read_open_fd(
       reader.get(),
-      source.c_str(),
-      10240))
-  {
+      fd.get(),
+      10240);
+  if (result) {
     return Error(archive_error_string(reader.get()));
   }
 
@@ -110,6 +94,17 @@ inline Try<Nothing> extract(
     {
       return Error(archive_error_string(reader.get()));
     }
+
+    // TODO(jeffaco): Supporting destination. Question: Do we want this?
+    //
+    // If we want to support the destination, then the entry contains the
+    // pathname to write (i.e. archive_entry_pathname(entry)).
+    //
+    // This will take some thought, because the entry might be a symlink,
+    // or a hardlink, and we need to investigate how that looks. Right now,
+    // archive_entry_pathname() returns raw path, assuming you are in the
+    // destination directory. We can certainly use os::join functions to
+    // build an absolute path with destination, if that's what we want.
 
     result = archive_write_header(writer.get(), entry);
     if (result != ARCHIVE_OK)
