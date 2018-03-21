@@ -33,6 +33,7 @@ set(HTTP_PARSER_URL     ${FETCH_URL}/http-parser-${HTTP_PARSER_VERSION}.tar.gz)
 set(PICOJSON_URL        ${FETCH_URL}/picojson-${PICOJSON_VERSION}.tar.gz)
 set(PROTOBUF_URL        ${FETCH_URL}/protobuf-${PROTOBUF_VERSION}.tar.gz)
 set(LEVELDB_URL         ${FETCH_URL}/leveldb-${LEVELDB_VERSION}.tar.gz)
+set(LIBARCHIVE_URL      ${FETCH_URL}/libarchive-${LIBARCHIVE_VERSION}.tar.gz)
 set(LIBEV_URL           ${FETCH_URL}/libev-${LIBEV_VERSION}.tar.gz)
 set(NVML_URL            ${FETCH_URL}/nvml-${NVML_VERSION}.tar.gz)
 set(ZOOKEEPER_URL       ${FETCH_URL}/zookeeper-${ZOOKEEPER_VERSION}.tar.gz)
@@ -379,6 +380,61 @@ ExternalProject_Add(
   INSTALL_COMMAND   ${GLOG_INSTALL_CMD}
   URL               ${GLOG_URL}
   URL_HASH          ${GLOG_HASH})
+
+
+# libarchive: Multi-format archive and compression library.
+# https://github.com/libarchive/libarchive
+#####################################
+EXTERNAL(libarchive ${LIBARCHIVE_VERSION} ${CMAKE_CURRENT_BINARY_DIR})
+
+# This is named `libarchive` to not conflict with the executable.
+add_library(archive STATIC IMPORTED GLOBAL)
+add_dependencies(archive ${LIBARCHIVE_TARGET})
+
+set(LIBARCHIVE_CMAKE_ARGS
+  ${CMAKE_FORWARD_ARGS}
+  -DENABLE_ACL=OFF
+  -DENABLE_CPIO=ON
+  -DENABLE_TAR=ON
+  -DENABLE_TEST=OFF
+  -DCMAKE_PREFIX_PATH=${ZLIB_ROOT}-build
+  -DCMAKE_INSTALL_PREFIX=${LIBARCHIVE_ROOT}-build)
+
+PATCH_CMD(LIBARCHIVE_PATCH_CMD libarchive-${LIBARCHIVE_VERSION}.patch)
+#
+# Disable tests Windows (can't handle UNICODE compile options)
+if (WIN32)
+  list(APPEND LIBARCHIVE_CMAKE_ARGS
+    -DENABLE_TEST=OFF)
+else ()
+  list(APPEND LIBARCHIVE_CMAKE_ARGS
+    -DENABLE_TEST=ON)
+endif ()
+
+if (WIN32)
+  SET_target_properties(
+    archive PROPERTIES
+    IMPORTED_LOCATION ${LIBARCHIVE_ROOT}-build/lib/archive${LIBRARY_SUFFIX}
+    INTERFACE_INCLUDE_DIRECTORIES ${LIBARCHIVE_ROOT}-build/include)
+else ()
+  SET_target_properties(
+    archive PROPERTIES
+    IMPORTED_LOCATION ${LIBARCHIVE_ROOT}-build/lib/libarchive${LIBRARY_SUFFIX}
+    INTERFACE_INCLUDE_DIRECTORIES ${LIBARCHIVE_ROOT}-build/include)
+endif ()
+
+MAKE_INCLUDE_DIR(archive)
+GET_BYPRODUCTS(archive)
+
+ExternalProject_Add(
+  ${LIBARCHIVE_TARGET}
+  PREFIX            ${LIBARCHIVE_CMAKE_ROOT}
+  BUILD_BYPRODUCTS  ${ARCHIVE_BYPRODUCTS}
+  PATCH_COMMAND     ${LIBARCHIVE_PATCH_CMD}
+  CMAKE_ARGS        ${LIBARCHIVE_CMAKE_ARGS}
+  #INSTALL_COMMAND   ${CMAKE_NOOP}
+  URL               ${LIBARCHIVE_URL}
+  URL_HASH          ${LIBARCHIVE_HASH})
 
 
 # PicoJSON: JSON parser / serializer.
