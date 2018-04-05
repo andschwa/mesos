@@ -82,6 +82,11 @@ inline Try<std::string> nodename()
 
 } // namespace internal {
 
+inline pid_t getpid()
+{
+  return ::GetCurrentProcessId();
+}
+
 
 // Overload of os::pids for filtering by groups and sessions. A group / session
 // id of 0 will fitler on the group / session ID of the calling process.

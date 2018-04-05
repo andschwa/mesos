@@ -66,7 +66,7 @@ inline Try<ProcessTree> pstree(Option<pid_t> pid = None())
   if (pid.isNone()) {
     pid = 1;
   } else if (pid.get() == 0) {
-    pid = getpid();
+    pid = os::getpid();
   }
 
   const Try<std::list<Process>> processes = os::processes();

@@ -54,7 +54,7 @@ const unsigned int init_pid =
 #ifdef __WINDOWS__
 int getppid()
 {
-  const int pid = getpid();
+  const int pid = os::getpid();
   HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
   std::shared_ptr<void> sh(h, CloseHandle);
 
@@ -75,10 +75,10 @@ int getppid()
 
 TEST_F(ProcessTest, Process)
 {
-  const Result<Process> process = os::process(getpid());
+  const Result<Process> process = os::process(os::getpid());
 
   ASSERT_SOME(process);
-  EXPECT_EQ(getpid(), process->pid);
+  EXPECT_EQ(os::getpid(), process->pid);
   EXPECT_EQ(getppid(), process->parent);
   ASSERT_SOME(process->session);
 
@@ -133,9 +133,9 @@ TEST_F(ProcessTest, Processes)
   // Look for ourselves in the table.
   bool found = false;
   foreach (const Process& process, processes.get()) {
-    if (process.pid == getpid()) {
+    if (process.pid == os::getpid()) {
       found = true;
-      EXPECT_EQ(getpid(), process.pid);
+      EXPECT_EQ(os::getpid(), process.pid);
       EXPECT_EQ(getppid(), process.parent);
       ASSERT_SOME(process.session);
 
@@ -169,7 +169,7 @@ TEST_F(ProcessTest, Pids)
   Try<set<pid_t>> pids = os::pids();
   ASSERT_SOME(pids);
   EXPECT_FALSE(pids->empty());
-  EXPECT_EQ(1u, pids->count(getpid()));
+  EXPECT_EQ(1u, pids->count(os::getpid()));
 
   // In a FreeBSD jail, pid 1 may not exist.
 #ifdef __FreeBSD__
@@ -192,7 +192,7 @@ TEST_F(ProcessTest, Pids)
   pids = os::pids(getpgid(0), None());
   EXPECT_SOME(pids);
   EXPECT_GE(pids->size(), 1u);
-  EXPECT_EQ(1u, pids->count(getpid()));
+  EXPECT_EQ(1u, pids->count(os::getpid()));
 
   // NOTE: This test is not meaningful on Windows because process IDs are
   // expected to be non-negative.
@@ -202,7 +202,7 @@ TEST_F(ProcessTest, Pids)
   pids = os::pids(None(), getsid(0));
   EXPECT_SOME(pids);
   EXPECT_GE(pids->size(), 1u);
-  EXPECT_EQ(1u, pids->count(getpid()));
+  EXPECT_EQ(1u, pids->count(os::getpid()));
 
   // NOTE: This test is not meaningful on Windows because process IDs are
   // expected to be non-negative.
@@ -214,7 +214,7 @@ TEST_F(ProcessTest, Pids)
 #ifdef __WINDOWS__
 TEST_F(ProcessTest, Pstree)
 {
-  Try<ProcessTree> tree = os::pstree(getpid());
+  Try<ProcessTree> tree = os::pstree(os::getpid());
   ASSERT_SOME(tree);
 
   // Windows spawns `conhost.exe` if we're running from VS, so the count of
@@ -231,7 +231,7 @@ TEST_F(ProcessTest, Pstree)
         None());
   ASSERT_SOME(process_data);
 
-  Try<ProcessTree> tree_after_spawn = os::pstree(getpid());
+  Try<ProcessTree> tree_after_spawn = os::pstree(os::getpid());
   ASSERT_SOME(tree_after_spawn);
 
   // Windows spawns conhost.exe if we're running from VS, so the count of
@@ -248,7 +248,7 @@ TEST_F(ProcessTest, Pstree)
 #else
 TEST_F(ProcessTest, Pstree)
 {
-  Try<ProcessTree> tree = os::pstree(getpid());
+  Try<ProcessTree> tree = os::pstree(os::getpid());
 
   ASSERT_SOME(tree);
   EXPECT_TRUE(tree->children.empty()) << stringify(tree.get());

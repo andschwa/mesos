@@ -101,6 +101,9 @@ using ::hstrerror;
 // Import `::random` into `os::` namespace.
 using ::random;
 
+// Import `::getpid` into `os::` namespace.
+using ::getpid;
+
 // Forward declarations.
 inline Try<Nothing> utime(const std::string&);
 inline Try<std::list<Process>> processes();

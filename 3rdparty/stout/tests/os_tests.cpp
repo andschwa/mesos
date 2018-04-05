@@ -328,7 +328,7 @@ TEST_F(OsTest, Sysctl)
 #endif // __APPLE__
   }
 
-  EXPECT_EQ(1u, pids.count(getpid()));
+  EXPECT_EQ(1u, pids.count(os::getpid()));
 
   // Timeval test.
   Try<timeval> bootTime = os::sysctl(CTL_KERN, KERN_BOOTTIME).time();
@@ -347,7 +347,7 @@ TEST_F(OsTest, Sysctl)
 #ifndef __WINDOWS__
 TEST_F(OsTest, Children)
 {
-  Try<set<pid_t>> children = os::children(getpid());
+  Try<set<pid_t>> children = os::children(os::getpid());
 
   ASSERT_SOME(children);
   EXPECT_TRUE(children->empty());
@@ -365,13 +365,13 @@ TEST_F(OsTest, Children)
 
   // Ensure the non-recursive children does not include the
   // grandchild.
-  children = os::children(getpid(), false);
+  children = os::children(os::getpid(), false);
 
   ASSERT_SOME(children);
   EXPECT_EQ(1u, children->size());
   EXPECT_EQ(1u, children->count(child));
 
-  children = os::children(getpid());
+  children = os::children(os::getpid());
 
   ASSERT_SOME(children);
 
@@ -646,7 +646,7 @@ TEST_F(OsTest, KilltreeNoRoot)
 TEST_F(OsTest, ProcessExists)
 {
   // Check we exist.
-  EXPECT_TRUE(os::exists(::getpid()));
+  EXPECT_TRUE(os::exists(os::getpid()));
 
   // In a FreeBSD jail, pid 1 may not exist.
 #if !defined(__FreeBSD__)

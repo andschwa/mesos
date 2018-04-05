@@ -287,7 +287,7 @@ private:
     int instance = forks.fetch_add(1);
 
     std::string name =
-      "/stout-forks-" + stringify(getpid()) + stringify(instance);
+      "/stout-forks-" + stringify(os::getpid()) + stringify(instance);
 
     int fd = shm_open(name.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -344,7 +344,7 @@ private:
 
     // Set the basic process information.
     Tree::Memory process;
-    process.pid = getpid();
+    process.pid = os::getpid();
     process.parent = getppid();
     process.group = getpgid(0);
     process.session = getsid(0);
@@ -396,7 +396,7 @@ private:
     // command-line of the top level process, since we construct the
     // tree using post-fork pre-exec information. So, we'll grab the
     // command of the current process here.
-    Result<Process> self = os::process(getpid());
+    Result<Process> self = os::process(os::getpid());
 
     Process process = Process(
         tree.memory->pid,

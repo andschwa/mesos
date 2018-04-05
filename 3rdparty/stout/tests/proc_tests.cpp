@@ -44,7 +44,7 @@ TEST(ProcTest, Pids)
 
   ASSERT_SOME(pids);
   EXPECT_FALSE(pids->empty());
-  EXPECT_EQ(1u, pids->count(getpid()));
+  EXPECT_EQ(1u, pids->count(os::getpid()));
   EXPECT_EQ(1u, pids->count(1));
 }
 
@@ -69,10 +69,10 @@ TEST(ProcTest, SystemStatus)
 
 TEST(ProcTest, ProcessStatus)
 {
-  Result<ProcessStatus> status = proc::status(getpid());
+  Result<ProcessStatus> status = proc::status(os::getpid());
 
   ASSERT_SOME(status);
-  EXPECT_EQ(getpid(), status->pid);
+  EXPECT_EQ(os::getpid(), status->pid);
   EXPECT_EQ(getppid(), status->ppid);
 }
 
@@ -81,11 +81,11 @@ TEST(ProcTest, ProcessStatus)
 TEST(ProcTest, SingleThread)
 {
   // Check we have the expected number of threads.
-  Try<set<pid_t>> threads = proc::threads(::getpid());
+  Try<set<pid_t>> threads = proc::threads(os::getpid());
 
   ASSERT_SOME(threads);
   EXPECT_EQ(1u, threads->size());
-  EXPECT_EQ(1u, threads->count(::getpid()));
+  EXPECT_EQ(1u, threads->count(os::getpid()));
 }
 
 
@@ -113,11 +113,11 @@ TEST(ProcTest, MultipleThreads)
   }
 
   // Check we have the expected number of threads.
-  Try<set<pid_t>> threads = proc::threads(::getpid());
+  Try<set<pid_t>> threads = proc::threads(os::getpid());
 
   ASSERT_SOME(threads);
   EXPECT_EQ(1u + numThreads, threads->size());
-  EXPECT_EQ(1u, threads->count(::getpid()));
+  EXPECT_EQ(1u, threads->count(os::getpid()));
 
   // Terminate the additional threads.
   synchronized (mutex) {
@@ -137,7 +137,7 @@ TEST(ProcTest, MultipleThreads)
   // after this test.
   Duration elapsed = Duration::zero();
   while (true) {
-    threads = proc::threads(::getpid());
+    threads = proc::threads(os::getpid());
     ASSERT_SOME(threads);
 
     if (threads->size() == 1) {
