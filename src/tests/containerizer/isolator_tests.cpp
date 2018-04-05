@@ -146,7 +146,7 @@ TEST_F(NamespacesIsolatorTest, ROOT_PidNamespace)
   EXPECT_EQ(0, wait->get().status());
 
   // Check that the command was run in a different pid namespace.
-  Result<ino_t> testPidNamespace = ns::getns(::getpid(), "pid");
+  Result<ino_t> testPidNamespace = ns::getns(os::getpid(), "pid");
   ASSERT_SOME(testPidNamespace);
 
   Try<string> containerPidNamespace = os::read(path::join(directory, "ns"));
@@ -211,7 +211,7 @@ TEST_F(NamespacesIsolatorTest, ROOT_SharePidNamespace)
   EXPECT_EQ(0, wait->get().status());
 
   // Check that the command was run in the same pid namespace.
-  Result<ino_t> testPidNamespace = ns::getns(::getpid(), "pid");
+  Result<ino_t> testPidNamespace = ns::getns(os::getpid(), "pid");
   ASSERT_SOME(testPidNamespace);
 
   Try<string> containerPidNamespace = os::read(path::join(directory, "ns"));
@@ -265,7 +265,7 @@ TEST_F(NamespacesIsolatorTest, ROOT_IPCNamespace)
   ASSERT_SOME(containerizer);
 
   // Value we will set the child namespace shmmax to.
-  uint64_t shmmaxValue = static_cast<uint64_t>(::getpid());
+  uint64_t shmmaxValue = static_cast<uint64_t>(os::getpid());
 
   Try<uint64_t> hostShmmax = readValue("/proc/sys/kernel/shmmax");
   ASSERT_SOME(hostShmmax);
@@ -302,7 +302,7 @@ TEST_F(NamespacesIsolatorTest, ROOT_IPCNamespace)
   EXPECT_EQ(0, wait->get().status());
 
   // Check that the command was run in a different IPC namespace.
-  Result<ino_t> testIPCNamespace = ns::getns(::getpid(), "ipc");
+  Result<ino_t> testIPCNamespace = ns::getns(os::getpid(), "ipc");
   ASSERT_SOME(testIPCNamespace);
 
   Try<string> containerIPCNamespace = os::read(path::join(directory, "ns"));

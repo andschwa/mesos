@@ -186,7 +186,7 @@ Try<Nothing> setns(
 {
   if (checkMultithreaded) {
     // Return error if there're multiple threads in the calling process.
-    Try<set<pid_t>> threads = proc::threads(::getpid());
+    Try<set<pid_t>> threads = proc::threads(os::getpid());
     if (threads.isError()) {
       return Error(
           "Failed to get the threads of the current process: " +
@@ -530,7 +530,7 @@ Try<pid_t> clone(
           flags,
           [=]() {
             ucred cred;
-            cred.pid = ::getpid();
+            cred.pid = os::getpid();
             cred.uid = ::getuid();
             cred.gid = ::getgid();
 

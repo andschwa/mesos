@@ -322,7 +322,7 @@ TEST_F(CgroupsAnyHierarchyWithCpuMemoryTest, ROOT_CGROUPS_SubsystemsHierarchy)
 
 TEST_F(CgroupsAnyHierarchyWithCpuMemoryTest, ROOT_CGROUPS_FindCgroupSubsystems)
 {
-  pid_t pid = ::getpid();
+  pid_t pid = os::getpid();
   Result<string> cpuHierarchy = cgroups::cpu::cgroup(pid);
   EXPECT_FALSE(cpuHierarchy.isError());
   EXPECT_SOME(cpuHierarchy);
@@ -438,7 +438,7 @@ TEST_F(CgroupsAnyHierarchyTest, ROOT_CGROUPS_NestedCgroups)
 
 TEST_F(CgroupsAnyHierarchyTest, ROOT_CGROUPS_Tasks)
 {
-  pid_t pid = ::getpid();
+  pid_t pid = os::getpid();
 
   Result<string> cgroup = cgroups::cpu::cgroup(pid);
   ASSERT_SOME(cgroup);
@@ -458,7 +458,7 @@ TEST_F(CgroupsAnyHierarchyTest, ROOT_CGROUPS_Read)
 
   EXPECT_ERROR(cgroups::read(hierarchy, TEST_CGROUPS_ROOT, "invalid42"));
 
-  pid_t pid = ::getpid();
+  pid_t pid = os::getpid();
 
   Result<string> cgroup = cgroups::cpu::cgroup(pid);
   ASSERT_SOME(cgroup);
@@ -634,7 +634,7 @@ TEST_F(CgroupsAnyHierarchyWithFreezerTest, ROOT_CGROUPS_Freeze)
 
     // Put self into the test cgroup.
     Try<Nothing> assign =
-      cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, ::getpid());
+      cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, os::getpid());
 
     if (assign.isError()) {
       std::cerr << "Failed to assign cgroup: " << assign.error() << std::endl;
@@ -727,7 +727,7 @@ TEST_F(CgroupsAnyHierarchyWithFreezerTest, ROOT_CGROUPS_Kill)
 
     // Put self into the test cgroup.
     Try<Nothing> assign =
-      cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, ::getpid());
+      cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, os::getpid());
 
     if (assign.isError()) {
       std::cerr << "Failed to assign cgroup: " << assign.error() << std::endl;
@@ -793,7 +793,7 @@ TEST_F(CgroupsAnyHierarchyWithFreezerTest, ROOT_CGROUPS_Destroy)
 
     // Put self into the test cgroup.
     Try<Nothing> assign =
-      cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, ::getpid());
+      cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, os::getpid());
 
     if (assign.isError()) {
       std::cerr << "Failed to assign cgroup: " << assign.error() << std::endl;
@@ -844,11 +844,11 @@ TEST_F(CgroupsAnyHierarchyWithFreezerTest, ROOT_CGROUPS_AssignThreads)
   EXPECT_TRUE(cgroupThreads->empty());
 
   // Assign ourselves to the test cgroup.
-  ASSERT_SOME(cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, ::getpid()));
+  ASSERT_SOME(cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, os::getpid()));
 
   // Get our threads (may be more than the numThreads we created if
   // other threads are running).
-  Try<set<pid_t>> threads = proc::threads(::getpid());
+  Try<set<pid_t>> threads = proc::threads(os::getpid());
   ASSERT_SOME(threads);
 
   // Check the test cgroup now only contains all child threads.
@@ -867,7 +867,7 @@ TEST_F(CgroupsAnyHierarchyWithFreezerTest, ROOT_CGROUPS_AssignThreads)
   delete latch;
 
   // Move ourselves to the root cgroup.
-  ASSERT_SOME(cgroups::assign(hierarchy, "", ::getpid()));
+  ASSERT_SOME(cgroups::assign(hierarchy, "", os::getpid()));
 
   // Destroy the cgroup.
   AWAIT_READY(cgroups::destroy(hierarchy, TEST_CGROUPS_ROOT));
@@ -1264,12 +1264,12 @@ TEST_F(CgroupsAnyHierarchyWithCpuAcctMemoryTest, ROOT_CGROUPS_CpuAcctsStats)
   const string hierarchy = path::join(baseHierarchy, "cpuacct");
   ASSERT_SOME(cgroups::create(hierarchy, TEST_CGROUPS_ROOT));
 
-  ASSERT_SOME(cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, ::getpid()));
+  ASSERT_SOME(cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, os::getpid()));
 
   ASSERT_SOME(cgroups::cpuacct::stat(hierarchy, TEST_CGROUPS_ROOT));
 
   // Move ourselves to the root cgroup.
-  ASSERT_SOME(cgroups::assign(hierarchy, "", ::getpid()));
+  ASSERT_SOME(cgroups::assign(hierarchy, "", os::getpid()));
 
   AWAIT_READY(cgroups::destroy(hierarchy, TEST_CGROUPS_ROOT));
 }
@@ -1334,7 +1334,7 @@ TEST_F(CgroupsAnyHierarchyDevicesTest, ROOT_CGROUPS_Devices)
   ASSERT_SOME(cgroups::create(hierarchy, TEST_CGROUPS_ROOT));
 
   // Assign ourselves to the cgroup.
-  ASSERT_SOME(cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, ::getpid()));
+  ASSERT_SOME(cgroups::assign(hierarchy, TEST_CGROUPS_ROOT, os::getpid()));
 
   // When a devices cgroup is first created, its whitelist inherits
   // all devices from its parent's whitelist (i.e., "a *:* rwm" by
@@ -1404,7 +1404,7 @@ TEST_F(CgroupsAnyHierarchyDevicesTest, ROOT_CGROUPS_Devices)
   EXPECT_SOME(write);
 
   // Move ourselves to the root cgroup.
-  ASSERT_SOME(cgroups::assign(hierarchy, "", ::getpid()));
+  ASSERT_SOME(cgroups::assign(hierarchy, "", os::getpid()));
 }
 
 } // namespace tests {

@@ -209,7 +209,8 @@ public:
 protected:
   virtual void initialize()
   {
-    VLOG(1) << "Executor started at: " << self() << " with pid " << getpid();
+    VLOG(1) << "Executor started at: " << self() << " with pid "
+            << os::getpid();
 
     link(slave);
 

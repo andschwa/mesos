@@ -216,7 +216,8 @@ static Try<Nothing> assignCgroups(const slave::Flags& flags)
     }
 
     // Move all of our threads into the cgroup.
-    Try<Nothing> assign = cgroups::assign(hierarchy.get(), cgroup, getpid());
+    Try<Nothing> assign =
+      cgroups::assign(hierarchy.get(), cgroup, os::getpid());
     if (assign.isError()) {
       return Error(
           "Failed to move agent into cgroup " + cgroup +

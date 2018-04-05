@@ -3344,7 +3344,7 @@ TYPED_TEST(SlaveRecoveryTest, ShutdownSlaveSIGUSR1)
         master.get()->pid);
 
   // Send SIGUSR1 signal to the slave.
-  kill(getpid(), SIGUSR1);
+  kill(os::getpid(), SIGUSR1);
 
   AWAIT_READY(signaled);
   AWAIT_READY(unregisterSlaveMessage);

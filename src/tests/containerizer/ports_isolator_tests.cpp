@@ -24,6 +24,7 @@
 
 #include <stout/duration.hpp>
 #include <stout/gtest.hpp>
+#include <stout/os.hpp>
 
 #include "internal/devolve.hpp"
 
@@ -176,7 +177,7 @@ TEST(NetworkPortsIsolatorUtilityTest, QueryProcessSockets)
   }
 
   Try<std::vector<uint32_t>> socketInodes =
-    NetworkPortsIsolatorProcess::getProcessSockets(getpid());
+    NetworkPortsIsolatorProcess::getProcessSockets(os::getpid());
 
   ASSERT_SOME(socketInodes);
   EXPECT_GT(socketInodes->size(), 0u);

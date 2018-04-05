@@ -21,6 +21,7 @@
 #include <netlink/route/link/veth.h>
 
 #include <stout/error.hpp>
+#include <stout/os.hpp>
 
 #include "linux/routing/internal.hpp"
 
@@ -46,7 +47,7 @@ Try<bool> create(
       socket.get().get(),
       veth.c_str(),
       peer.c_str(),
-      (pid.isNone() ? getpid() : pid.get()));
+      (pid.isNone() ? os::getpid() : pid.get()));
 
   if (error != 0) {
     if (error == -NLE_EXIST) {

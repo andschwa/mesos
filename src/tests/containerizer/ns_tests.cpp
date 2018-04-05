@@ -147,7 +147,7 @@ TEST(NsTest, ROOT_setnsMultipleThreads)
   });
 
   foreach (int nsType, namespaces) {
-    EXPECT_ERROR(ns::setns(::getpid(), ns::nsname(nsType).get()));
+    EXPECT_ERROR(ns::setns(os::getpid(), ns::nsname(nsType).get()));
   }
 
   // Terminate the thread.
@@ -180,7 +180,7 @@ TEST(NsTest, ROOT_getns)
   ASSERT_FALSE(namespaces.empty());
   string ns = ns::nsname(*(namespaces.begin())).get();
 
-  ASSERT_SOME(ns::getns(::getpid(), ns));
+  ASSERT_SOME(ns::getns(os::getpid(), ns));
 
   Try<int> nstype = ns::nstype(ns);
   ASSERT_SOME(nstype);
@@ -190,7 +190,7 @@ TEST(NsTest, ROOT_getns)
   ASSERT_NE(-1, pid);
 
   // Continue in parent.
-  Result<ino_t> nsParent = ns::getns(::getpid(), ns);
+  Result<ino_t> nsParent = ns::getns(os::getpid(), ns);
   ASSERT_SOME(nsParent);
 
   Result<ino_t> nsChild = ns::getns(pid, ns);
@@ -210,7 +210,7 @@ TEST(NsTest, ROOT_getns)
 TEST(NsTest, ROOT_clone)
 {
   // `ns::clone` does not support user namespaces yet.
-  ASSERT_ERROR(ns::clone(getpid(), CLONE_NEWUSER, []() { return -1; }, 0));
+  ASSERT_ERROR(ns::clone(os::getpid(), CLONE_NEWUSER, []() { return -1; }, 0));
 
   // Determine the namespaces this kernel supports and test them,
   // skipping the user namespace for now because it's not fully
@@ -249,7 +249,7 @@ TEST(NsTest, ROOT_clone)
     const string ns = ns::nsname(nsType).get();
     Result<ino_t> inode = ns::getns(parent, ns);
     ASSERT_SOME(inode);
-    EXPECT_SOME_NE(inode.get(), ns::getns(getpid(), ns));
+    EXPECT_SOME_NE(inode.get(), ns::getns(os::getpid(), ns));
     EXPECT_SOME_EQ(inode.get(), ns::getns(child.get(), ns));
   }
 
