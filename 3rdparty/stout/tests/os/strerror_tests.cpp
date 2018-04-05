@@ -22,6 +22,11 @@
 
 using std::string;
 
+#ifdef __WINDOWS__
+// Disable warning about use of `strerror` because we're explicitly
+// testing against it.
+#pragma warning(disable:4996)
+#endif
 
 TEST(StrerrorTest, ValidErrno)
 {
@@ -41,6 +46,9 @@ TEST(StrerrorTest, InvalidErrno)
             os::strerror(std::numeric_limits<int>::max()));
 }
 
+#ifdef __WINDOWS__
+#pragma warning(disable:4996)
+#endif
 
 // The Linux documentation[1] on `herrno` indicates there are only 4 possible
 // values that `h_errno` can have.
