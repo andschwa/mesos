@@ -133,10 +133,9 @@ TEST(JsonTest, CStringAssignment)
   EXPECT_EQ(get<JSON::String>(v).value, "123");
   EXPECT_EQ(s.value, "123");
 
-  char buf[1000];
-
-  v = strcpy(buf, "bar");
-  s = strcpy(buf, "bar");
+  string bar = "bar";
+  v = bar.c_str();
+  s = bar.c_str();
   EXPECT_EQ(get<JSON::String>(v).value, "bar");
   EXPECT_EQ(s.value, "bar");
 }
