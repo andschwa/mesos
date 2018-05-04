@@ -32,16 +32,20 @@ The script performs the following sequence:
   * Mesos is built and unit tests are run.
   * The result is posted to ReviewBoard.
 """
+from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import atexit
 import json
 import os
 import platform
 import subprocess
 import sys
-import urllib
-import urllib2
-import urlparse
+import urllib.request
+import urllib.parse
+import urllib.error
 
 from datetime import datetime
 
@@ -80,7 +84,7 @@ class ReviewError(Exception):
 
 def shell(command):
     """Run a shell command."""
-    print command
+    print(command)
     return subprocess.check_output(
         command, stderr=subprocess.STDOUT, shell=True)
 
@@ -91,28 +95,28 @@ HEAD = shell("git rev-parse HEAD")
 def api(url, data=None):
     """Call the ReviewBoard API."""
     try:
-        auth_handler = urllib2.HTTPBasicAuthHandler()
+        auth_handler = urllib.request.HTTPBasicAuthHandler()
         auth_handler.add_password(
             realm="Web API",
             uri="reviews.apache.org",
             user=USER,
             passwd=PASSWORD)
 
-        opener = urllib2.build_opener(auth_handler)
-        urllib2.install_opener(opener)
+        opener = urllib.request.build_opener(auth_handler)
+        urllib.request.install_opener(opener)
 
-        return json.loads(urllib2.urlopen(url, data=data).read())
-    except urllib2.HTTPError as err:
-        print "Error handling URL %s: %s (%s)" % (url, err.reason, err.read())
+        return json.loads(urllib.request.urlopen(url, data=data).read())
+    except urllib.error.HTTPError as err:
+        print("Error handling URL %s: %s (%s)" % (url, err.reason, err.read()))
         exit(1)
-    except urllib2.URLError as err:
-        print "Error handling URL %s: %s" % (url, err.reason)
+    except urllib.error.URLError as err:
+        print("Error handling URL %s: %s" % (url, err.reason))
         exit(1)
 
 
 def apply_review(review_id):
     """Apply a review using the script apply-reviews.py."""
-    print "Applying review %s" % review_id
+    print("Applying review %s" % review_id)
     shell("python support/apply-reviews.py -n -r %s" % review_id)
 
 
@@ -134,7 +138,7 @@ def apply_reviews(review_request, reviews):
     # First recursively apply the dependent reviews.
     for review in review_request["depends_on"]:
         review_url = review["href"]
-        print "Dependent review: %s " % review_url
+        print("Dependent review: %s " % review_url)
         apply_reviews(api(review_url)["review_request"], reviews)
 
     # Now apply this review if not yet submitted.
@@ -144,10 +148,10 @@ def apply_reviews(review_request, reviews):
 
 def post_review(review_request, message):
     """Post a review on the review board."""
-    print "Posting review: %s" % message
+    print("Posting review: %s" % message)
 
     review_url = review_request["links"]["reviews"]["href"]
-    data = urllib.urlencode({'body_top': message, 'public': 'true'})
+    data = urllib.parse.urlencode({'body_top': message, 'public': 'true'})
     api(review_url, data)
 
 
@@ -158,12 +162,12 @@ def cleanup():
         shell("git clean -fd")
         shell("git reset --hard %s" % HEAD)
     except subprocess.CalledProcessError as err:
-        print "Failed command: %s\n\nError: %s" % (err.cmd, err.output)
+        print("Failed command: %s\n\nError: %s" % (err.cmd, err.output))
 
 
 def verify_review(review_request):
     """Verify a review."""
-    print "Verifying review %s" % review_request["id"]
+    print("Verifying review %s" % review_request["id"])
     build_output = "build_" + str(review_request["id"])
 
     try:
@@ -220,14 +224,14 @@ def verify_review(review_request):
         if platform.system() == 'Windows':
             # We didn't output anything during the build (because `tee`
             # doesn't exist), so we print the output to stdout upon error.
-            print output
+            print(output)
 
         # Truncate the output when posting the review as it can be very large.
         if len(output) > REVIEW_SIZE:
             output = "...<truncated>...\n" + output[-REVIEW_SIZE:]
 
         output += "\nFull log: "
-        output += urlparse.urljoin(os.environ['BUILD_URL'], 'console')
+        output += urllib.parse.urljoin(os.environ['BUILD_URL'], 'console')
 
         post_review(
             review_request,
@@ -248,25 +252,25 @@ def verify_review(review_request):
 
 def needs_verification(review_request):
     """Return True if this review request needs to be verified."""
-    print "Checking if review: %s needs verification" % review_request["id"]
+    print("Checking if review: %s needs verification" % review_request["id"])
 
     # Skip if the review blocks another review.
     if review_request["blocks"]:
-        print "Skipping blocking review %s" % review_request["id"]
+        print("Skipping blocking review %s" % review_request["id"])
         return False
 
     diffs_url = review_request["links"]["diffs"]["href"]
     diffs = api(diffs_url)
 
     if len(diffs["diffs"]) == 0:  # No diffs attached!
-        print "Skipping review %s as it has no diffs" % review_request["id"]
+        print("Skipping review %s as it has no diffs" % review_request["id"])
         return False
 
     # Get the timestamp of the latest diff.
     timestamp = diffs["diffs"][-1]["timestamp"]
     rb_date_format = "%Y-%m-%dT%H:%M:%SZ"
     diff_time = datetime.strptime(timestamp, rb_date_format)
-    print "Latest diff timestamp: %s" % diff_time
+    print("Latest diff timestamp: %s" % diff_time)
 
     # Get the timestamp of the latest review from this script.
     reviews_url = review_request["links"]["reviews"]["href"]
@@ -276,7 +280,7 @@ def needs_verification(review_request):
         if review["links"]["user"]["title"] == USER:
             timestamp = review["timestamp"]
             review_time = datetime.strptime(timestamp, rb_date_format)
-            print "Latest review timestamp: %s" % review_time
+            print("Latest review timestamp: %s" % review_time)
             break
 
     # TODO: Apply this check recursively up the dependency chain.
@@ -287,7 +291,7 @@ def needs_verification(review_request):
         if "depends_on" in change["fields_changed"]:
             timestamp = change["timestamp"]
             dependency_time = datetime.strptime(timestamp, rb_date_format)
-            print "Latest dependency change timestamp: %s" % dependency_time
+            print("Latest dependency change timestamp: %s" % dependency_time)
             break
 
     # Needs verification if there is a new diff, or if the dependencies changed,

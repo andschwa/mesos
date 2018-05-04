@@ -28,6 +28,7 @@ Example Usage:
 > ./support/apply-reviews.py -c -r 1234
 > ./support/push-commits.py
 """
+from __future__ import print_function
 
 # TODO(vinod): Also post the commit message to the corresponding ASF JIRA
 # tickets and resolve them if necessary.
@@ -64,7 +65,8 @@ def get_reviews(revision_range):
                 url=os.path.join(REVIEWBOARD_URL, 'r', '[0-9]+')))
             match = pattern.search(commit_log.strip().strip('/'))
             if match is None:
-                print "\nInvalid ReviewBoard URL: '{}'".format(commit_log[pos:])
+                print("\nInvalid ReviewBoard URL: '{}'".format(
+                    commit_log[pos:]))
                 sys.exit(1)
 
             url = match.group(1)
@@ -76,7 +78,7 @@ def get_reviews(revision_range):
 def close_reviews(reviews, options):
     """Mark the given reviews as submitted on ReviewBoard."""
     for review_id, commit_log in reviews:
-        print 'Closing review', review_id
+        print('Closing review', review_id)
         if not options['dry_run']:
             check_output(['rbt',
                           'close',
@@ -110,7 +112,7 @@ def main():
     current_branch = current_branch_ref.replace('refs/heads/', '', 1)
 
     if current_branch != 'master':
-        print 'Please run this script from master branch'
+        print('Please run this script from master branch')
         sys.exit(1)
 
     remote_tracking_branch = check_output(['git',
@@ -125,7 +127,7 @@ def main():
         'master']).strip()
 
     if merge_base == current_branch_ref:
-        print 'No new commits found to push'
+        print('No new commits found to push')
         sys.exit(1)
 
     reviews = get_reviews(merge_base + ".." + current_branch_ref)
@@ -136,7 +138,7 @@ def main():
                            '--get',
                            'branch.master.remote']).strip()
 
-    print 'Pushing commits to', remote
+    print('Pushing commits to', remote)
 
     if options['dry_run']:
         check_output(['git',

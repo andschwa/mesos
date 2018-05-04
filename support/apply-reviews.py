@@ -20,7 +20,10 @@
 This script translates reviews on ReviewBoard into commits
 on the current branch.
 """
+from __future__ import print_function
 
+from future import standard_library
+standard_library.install_aliases()
 import argparse
 import atexit
 import json
@@ -32,7 +35,9 @@ import re
 import ssl
 import subprocess
 import sys
-import urllib2
+import urllib.request
+import urllib.error
+import urllib.parse
 
 
 REVIEWBOARD_REVIEW_URL = 'https://reviews.apache.org/r'
@@ -92,7 +97,7 @@ def patch_url(options):
 
 def url_to_json(url):
     """Performs HTTP request and returns JSON-ified response."""
-    json_str = urllib2.urlopen(url)
+    json_str = urllib.request.urlopen(url)
     return json.loads(json_str.read())
 
 
@@ -141,7 +146,7 @@ def shell(command, dry_run):
     is set (in which case it just prints the command).
     """
     if dry_run:
-        print command
+        print(command)
         return
 
     error_code = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
@@ -193,7 +198,7 @@ def fetch_patch(options):
     # pylint: disable=unexpected-keyword-arg
     if platform.system() == 'Windows':
         # This call requires Python >= 2.7.9.
-        response = urllib2.urlopen(
+        response = urllib.request.urlopen(
             patch_url(options),
             context=ssl_create_default_context())
 
