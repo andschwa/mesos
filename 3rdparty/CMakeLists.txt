@@ -595,6 +595,7 @@ endif ()
 # APR: The Apache Portable Runtime Project.
 # https://apr.apache.org
 ###########################################
+# NOTE: This library is a dependency of `libsvn`, the next library.
 if (WIN32)
   EXTERNAL(libapr ${LIBAPR_VERSION} ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -648,6 +649,7 @@ if (NOT WIN32)
   find_package(Svn REQUIRED)
   add_library(svn INTERFACE)
   target_include_directories(svn INTERFACE ${SVN_INCLUDE_DIR})
+  target_include_libraries(svn INTERFACE apr)
 
   # `FindSvn` returns finds three separate libraries.
   foreach (lib ${SVN_LIBS})
