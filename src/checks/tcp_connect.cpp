@@ -109,7 +109,14 @@ int testTCPConnect(const string& ip, int port)
 
   cout << "Successfully established TCP connection" << endl;
 
-  shutdown(socket.get(), SHUT_RDWR);
+  ::shutdown(
+#ifdef __WINDOWS__
+      static_cast<SOCKET>(socket.get()),
+#else
+      socket.get(),
+#endif // __WINDOWS__
+      SHUT_RDWR);
+
   os::close(socket.get());
 
   return EXIT_SUCCESS;
