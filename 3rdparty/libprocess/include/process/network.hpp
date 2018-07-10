@@ -81,7 +81,14 @@ inline Try<Address> address(int_fd s)
   sockaddr_storage storage;
   socklen_t length = sizeof(storage);
 
-  if (::getsockname(s, (sockaddr*)&storage, &length) < 0) {
+  if (::getsockname(
+#ifdef __WINDOWS__
+          static_cast<SOCKET>(s),
+#else
+          s,
+#endif // __WINDOWS__
+          reinterpret_cast<sockaddr*>(&storage),
+          &length) < 0) {
     return ErrnoError("Failed to getsockname");
   }
 
@@ -100,7 +107,14 @@ inline Try<Address> peer(int_fd s)
   sockaddr_storage storage;
   socklen_t length = sizeof(storage);
 
-  if (::getpeername(s, (sockaddr*)&storage, &length) < 0) {
+  if (::getpeername(
+#ifdef __WINDOWS__
+          static_cast<SOCKET>(s),
+#else
+          s,
+#endif // __WINDOWS__
+          reinterpret_cast<sockaddr*>(&storage),
+          &length) < 0) {
     return ErrnoError("Failed to getpeername");
   }
 

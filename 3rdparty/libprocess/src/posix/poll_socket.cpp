@@ -43,7 +43,14 @@ Try<std::shared_ptr<SocketImpl>> PollSocketImpl::create(int_fd s)
 
 Try<Nothing> PollSocketImpl::listen(int backlog)
 {
-  if (::listen(get(), backlog) < 0) {
+  if (::listen(
+#ifdef __WINDOWS__
+          // TODO(andschwa): Remove this when libevent on Windows is removed.
+          static_cast<intptr_t>(get()),
+#else
+          get(),
+#endif // __WINDOWS__
+          backlog) < 0) {
     return ErrnoError();
   }
   return Nothing();
@@ -90,7 +97,12 @@ Future<std::shared_ptr<SocketImpl>> PollSocketImpl::accept()
           address->family() == Address::Family::INET6) {
         int on = 1;
         if (::setsockopt(
+#ifdef __WINDOWS__
+                // TODO(andschwa): Remove this when libevent on Windows is removed.
+                static_cast<SOCKET>(s),
+#else
                 s,
+#endif // __WINDOWS__
                 SOL_TCP,
                 TCP_NODELAY,
                 reinterpret_cast<const char*>(&on),
@@ -132,7 +144,12 @@ Future<Nothing> PollSocketImpl::connect(const Address& address)
           // NOTE: We cast to `char*` here because the function
           // prototypes on Windows use `char*` instead of `void*`.
           if (::getsockopt(
+#ifdef __WINDOWS__
+                  // TODO(andschwa): Remove this when libevent on Windows is removed.
+                  static_cast<SOCKET>(self->get()),
+#else
                   self->get(),
+#endif // __WINDOWS__
                   SOL_SOCKET,
                   SO_ERROR,
                   reinterpret_cast<char*>(&opt),

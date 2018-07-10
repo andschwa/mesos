@@ -88,7 +88,17 @@ Future<short> poll(int_fd fd, short events)
   // Bind `event_free` to the destructor of the `ev` shared pointer
   // guaranteeing that the event will be freed only once.
   poll->ev.reset(
-      event_new(base, fd, what, &internal::pollCallback, poll),
+      event_new(
+          base,
+#ifdef __WINDOWS__
+          // TODO(andschwa): Remove this when libevent on Windows is removed.
+          static_cast<intptr_t>(fd),
+#else
+          fd,
+#endif // __WINDOWS__
+          what,
+          &internal::pollCallback,
+          poll),
       event_free);
 
   if (poll->ev == nullptr) {

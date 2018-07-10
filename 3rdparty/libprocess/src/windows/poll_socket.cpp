@@ -41,9 +41,10 @@ Try<std::shared_ptr<SocketImpl>> PollSocketImpl::create(int_fd s)
 
 Try<Nothing> PollSocketImpl::listen(int backlog)
 {
-  if (::listen(get(), backlog) < 0) {
+  if (::listen(static_cast<SOCKET>(get()), backlog) < 0) {
     return ErrnoError();
   }
+
   return Nothing();
 }
 
@@ -83,11 +84,11 @@ Future<std::shared_ptr<SocketImpl>> PollSocketImpl::accept()
       }
     })
     .then([self, accept_socket]() -> Future<std::shared_ptr<SocketImpl>> {
-      SOCKET listen = self->get();
+      SOCKET listen = static_cast<SOCKET>(self->get());
 
       // Inherit from the listening socket.
       int res = ::setsockopt(
-          accept_socket,
+          static_cast<SOCKET>(accept_socket),
           SOL_SOCKET,
           SO_UPDATE_ACCEPT_CONTEXT,
           reinterpret_cast<char*>(&listen),
@@ -104,7 +105,7 @@ Future<std::shared_ptr<SocketImpl>> PollSocketImpl::accept()
       // for more info.
       const int on = 1;
       res = ::setsockopt(
-          accept_socket,
+          static_cast<SOCKET>(accept_socket),
           SOL_TCP,
           TCP_NODELAY,
           reinterpret_cast<const char*>(&on),
@@ -149,7 +150,11 @@ Future<Nothing> PollSocketImpl::connect(const Address& address)
       // so that it regains its properties. For more information, see
       // https://msdn.microsoft.com/en-us/library/windows/desktop/ms737606(v=vs.85).aspx // NOLINT(whitespace/line_length)
       int res = ::setsockopt(
-          self->get(), SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, nullptr, 0);
+          static_cast<SOCKET>(self->get()),
+          SOL_SOCKET,
+          SO_UPDATE_CONNECT_CONTEXT,
+          nullptr,
+          0);
 
       if (res != 0) {
         WindowsError error;

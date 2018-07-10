@@ -253,11 +253,11 @@ TEST_F(IOTest, DISABLED_BlockingWrite)
 #ifdef __WINDOWS__
   DWORD outBufferSize;
   const BOOL success = ::GetNamedPipeInfo(
-      pipes[0],       // Pipe `HANDLE`.
-      nullptr,        // Flags.
-      &outBufferSize, // Outbound (write) buffer size.
-      nullptr,        // Inbound (read) buffer size.
-      nullptr);       // Max instances of the named pipe.
+      static_cast<HANDLE>(pipes[0]), // Pipe `HANDLE`.
+      nullptr,                       // Flags.
+      &outBufferSize,                // Outbound (write) buffer size.
+      nullptr,                       // Inbound (read) buffer size.
+      nullptr);                      // Max instances of the named pipe.
 
   ASSERT_TRUE(success);
 

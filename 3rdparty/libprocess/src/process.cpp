@@ -1102,7 +1102,11 @@ bool initialize(
   // use `char*` instead of `void*`.
   int on = 1;
   if (::setsockopt(
+#ifdef __WINDOWS__
+          static_cast<SOCKET>(__s__->get()),
+#else
           __s__->get(),
+#endif // __WINDOWS__
           SOL_SOCKET,
           SO_REUSEADDR,
           reinterpret_cast<char*>(&on),

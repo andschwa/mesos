@@ -89,7 +89,7 @@ Try<Nothing> prepare_async(int_fd fd)
     return Error("Got a non-overlapped socket");
   }
 
-  DWORD type = ::GetFileType(fd);
+  DWORD type = ::GetFileType(static_cast<HANDLE>(fd));
   if (type != FILE_TYPE_DISK) {
     WindowsError error;
     return Error(std::string(
@@ -115,7 +115,7 @@ Try<bool> is_async(int_fd fd)
     return false;
   }
 
-  DWORD type = ::GetFileType(fd);
+  DWORD type = ::GetFileType(static_cast<HANDLE>(fd));
   WindowsError error;
   if (type == FILE_TYPE_UNKNOWN && error.code != NO_ERROR) {
     return error;

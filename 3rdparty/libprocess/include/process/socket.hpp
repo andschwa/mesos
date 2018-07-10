@@ -190,7 +190,13 @@ public:
    */
   virtual Try<Nothing, SocketError> shutdown(int how)
   {
-    if (::shutdown(s, how) < 0) {
+    if (::shutdown(
+#ifdef __WINDOWS__
+            static_cast<SOCKET>(s),
+#else
+            s,
+#endif // __WINDOWS__
+            how) < 0) {
       return SocketError();
     }
 

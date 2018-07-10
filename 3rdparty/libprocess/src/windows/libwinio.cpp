@@ -415,8 +415,9 @@ Try<Nothing> EventLoop::registerHandle(const int_fd& fd)
   // initialization. These are some optimizations that prevent IOCP
   // notifications on success and event notifications, so that we have less
   // context switches.
-  BOOL success = ::SetFileCompletionNotificationModes(
-      fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE);
+  const BOOL success = ::SetFileCompletionNotificationModes(
+      static_cast<HANDLE>(fd),
+      FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE);
 
   if (!success) {
     return WindowsError();
@@ -445,7 +446,7 @@ static void enable_cancellation(
       // try to cancel the IO operation. Note that there is technically a
       // race here. We could be between the IO completion event and deleting
       // the overlapped object. In that case, this function will just no-op.
-      ::CancelIoEx(fd, &cancel->base.overlapped);
+      ::CancelIoEx(static_cast<HANDLE>(fd), &cancel->base.overlapped);
     }
   });
 
@@ -463,7 +464,7 @@ static Future<size_t> read_internal(
 
   // We use a `std::shared_ptr`, so we can safely support canceling.
   auto overlapped = std::make_shared<IOOverlappedReadWrite>(
-      IOOverlappedBase{OVERLAPPED{}, fd, type}, promise);
+      IOOverlappedBase{OVERLAPPED{}, static_cast<HANDLE>(fd), type}, promise);
 
   enable_cancellation(fd, future, overlapped);
 
@@ -499,7 +500,7 @@ static Future<size_t> write_internal(
 
   // We use a `std::shared_ptr`, so we can safely support canceling.
   auto overlapped = std::make_shared<IOOverlappedReadWrite>(
-      IOOverlappedBase{OVERLAPPED{}, fd, type}, promise);
+      IOOverlappedBase{OVERLAPPED{}, static_cast<HANDLE>(fd), type}, promise);
 
   enable_cancellation(fd, future, overlapped);
 
@@ -558,7 +559,8 @@ Future<Nothing> accept(const int_fd& fd, const int_fd& accepted_socket)
 
   // We use a `std::shared_ptr`, so we can safely support canceling.
   auto overlapped = std::make_shared<IOOverlappedAccept>(
-      IOOverlappedBase{OVERLAPPED{}, fd, IOType::ACCEPT}, promise);
+      IOOverlappedBase{OVERLAPPED{}, static_cast<HANDLE>(fd), IOType::ACCEPT},
+      promise);
 
   enable_cancellation(fd, future, overlapped);
 
@@ -570,8 +572,8 @@ Future<Nothing> accept(const int_fd& fd, const int_fd& accepted_socket)
   // https://msdn.microsoft.com/en-us/library/windows/desktop/ms737524(v=vs.85).aspx // NOLINT(whitespace/line_length)
   DWORD bytes;
   const BOOL success = ::AcceptEx(
-      fd,
-      accepted_socket,
+      static_cast<SOCKET>(fd),
+      static_cast<SOCKET>(accepted_socket),
       overlapped->buf,
       0,
       sizeof(overlapped->buf) / 2,
@@ -608,7 +610,7 @@ static LPFN_CONNECTEX init_connect_ex(const int_fd& fd)
   DWORD bytes;
 
   int res = ::WSAIoctl(
-      fd,
+      static_cast<SOCKET>(fd),
       SIO_GET_EXTENSION_FUNCTION_POINTER,
       &connect_ex_guid,
       sizeof(connect_ex_guid),
@@ -666,12 +668,13 @@ Future<Nothing> connect(const int_fd& fd, const network::Address& address)
   Future<Nothing> future = promise->future();
 
   auto overlapped = std::make_shared<IOOverlappedConnect>(
-      IOOverlappedBase{OVERLAPPED{}, fd, IOType::CONNECT}, promise);
+      IOOverlappedBase{OVERLAPPED{}, static_cast<HANDLE>(fd), IOType::CONNECT},
+      promise);
 
   enable_cancellation(fd, future, overlapped);
 
   const BOOL success = connect_ex(
-      fd,
+      static_cast<SOCKET>(fd),
       reinterpret_cast<const sockaddr*>(&storage),
       address_size,
       nullptr,
@@ -712,7 +715,9 @@ Future<size_t> sendfile(
   Future<size_t> future = promise->future();
 
   auto overlapped = std::make_shared<IOOverlappedReadWrite>(
-      IOOverlappedBase{OVERLAPPED{}, socket, IOType::SENDFILE}, promise);
+      IOOverlappedBase{
+        OVERLAPPED{}, static_cast<HANDLE>(socket), IOType::SENDFILE},
+      promise);
 
   uint64_t offset64 = static_cast<uint64_t>(offset);
   overlapped->base.overlapped.Offset = static_cast<DWORD>(offset64);
