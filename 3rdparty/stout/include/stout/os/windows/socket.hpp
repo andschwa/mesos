@@ -16,8 +16,8 @@
 #include <glog/logging.h>
 
 #include <stout/abort.hpp>
-#include <stout/try.hpp>
 #include <stout/error.hpp>
+#include <stout/try.hpp>
 #include <stout/windows.hpp> // For `WinSock2.h`.
 
 #include <stout/os/int_fd.hpp>
@@ -132,7 +132,8 @@ inline Try<int_fd> socket(
 inline int_fd accept(
     const int_fd& fd, sockaddr* addr, socklen_t* addrlen)
 {
-  return int_fd(::accept(fd, addr, reinterpret_cast<int*>(addrlen)));
+  return int_fd(
+      ::accept(static_cast<SOCKET>(fd), addr, reinterpret_cast<int*>(addrlen)));
 }
 
 
@@ -144,7 +145,7 @@ inline int bind(
     const int_fd& fd, const sockaddr* addr, socklen_t addrlen)
 {
   CHECK_LE(addrlen, INT32_MAX);
-  return ::bind(fd, addr, static_cast<int>(addrlen));
+  return ::bind(static_cast<SOCKET>(fd), addr, static_cast<int>(addrlen));
 }
 
 
@@ -152,7 +153,7 @@ inline int connect(
     const int_fd& fd, const sockaddr* address, socklen_t addrlen)
 {
   CHECK_LE(addrlen, INT32_MAX);
-  return ::connect(fd, address, static_cast<int>(addrlen));
+  return ::connect(static_cast<SOCKET>(fd), address, static_cast<int>(addrlen));
 }
 
 
@@ -161,14 +162,21 @@ inline ssize_t send(
 {
   CHECK_LE(len, INT32_MAX);
   return ::send(
-      fd, static_cast<const char*>(buf), static_cast<int>(len), flags);
+      static_cast<SOCKET>(fd),
+      static_cast<const char*>(buf),
+      static_cast<int>(len),
+      flags);
 }
 
 
 inline ssize_t recv(const int_fd& fd, void* buf, size_t len, int flags)
 {
   CHECK_LE(len, INT32_MAX);
-  return ::recv(fd, static_cast<char*>(buf), static_cast<int>(len), flags);
+  return ::recv(
+      static_cast<SOCKET>(fd),
+      static_cast<char*>(buf),
+      static_cast<int>(len),
+      flags);
 }
 
 } // namespace net {

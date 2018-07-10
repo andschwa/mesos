@@ -741,9 +741,8 @@ TEST_F(FsTest, ReadWriteAsync)
 
   // Wait for read to finish.
   DWORD bytes;
-  ASSERT_EQ(
-      TRUE,
-      ::GetOverlappedResult(pipes.get()[0], &read_overlapped, &bytes, TRUE));
+  ASSERT_TRUE(::GetOverlappedResult(
+      static_cast<HANDLE>(pipes.get()[0]), &read_overlapped, &bytes, TRUE));
 
   ASSERT_GT(bytes, static_cast<DWORD>(0));
   ASSERT_EQ(result_write.get(), bytes);
@@ -787,9 +786,8 @@ TEST_F(FsTest, ReadWriteAsyncLargeBuffer)
 
   // Wait for write to finish.
   DWORD bytes;
-  ASSERT_EQ(
-      TRUE,
-      ::GetOverlappedResult(pipes.get()[1], &write_overlapped, &bytes, TRUE));
+  ASSERT_TRUE(::GetOverlappedResult(
+      static_cast<HANDLE>(pipes.get()[1]), &write_overlapped, &bytes, TRUE));
 
   ASSERT_GT(bytes, static_cast<DWORD>(0));
   ASSERT_EQ(result_read.get(), bytes);

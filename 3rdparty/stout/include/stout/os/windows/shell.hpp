@@ -283,8 +283,9 @@ inline Try<ProcessData> create_process(
   //     after the child process has been created.
   std::vector<HANDLE> handles;
   if (pipes.isSome()) {
+    const std::array<int_fd, 3>& p = pipes.get();
     // Each of these handles must be inheritable.
-    foreach (const int_fd& fd, pipes.get()) {
+    foreach (const int_fd& fd, p) {
       handles.emplace_back(static_cast<HANDLE>(fd));
       const Try<Nothing> inherit = set_inherit(fd, true);
       if (inherit.isError()) {
@@ -299,9 +300,9 @@ inline Try<ProcessData> create_process(
     // [1] https://msdn.microsoft.com/en-us/library/windows/desktop/ms686331(v=vs.85).aspx
     // [2] https://msdn.microsoft.com/en-us/library/windows/desktop/ms682499(v=vs.85).aspx
     startup_info_ex.StartupInfo.dwFlags   |= STARTF_USESTDHANDLES;
-    startup_info_ex.StartupInfo.hStdInput  = std::get<0>(pipes.get());
-    startup_info_ex.StartupInfo.hStdOutput = std::get<1>(pipes.get());
-    startup_info_ex.StartupInfo.hStdError  = std::get<2>(pipes.get());
+    startup_info_ex.StartupInfo.hStdInput  = static_cast<HANDLE>(p[0]);
+    startup_info_ex.StartupInfo.hStdOutput = static_cast<HANDLE>(p[1]);
+    startup_info_ex.StartupInfo.hStdError  = static_cast<HANDLE>(p[2]);
   }
 
   foreach (const int_fd& fd, whitelist_fds) {

@@ -89,13 +89,15 @@ Try<std::array<int_fd, 2>> socketpair()
     return SocketError();
   }
 
-  if (::listen(server.fd, 1) != 0) {
+  if (::listen(static_cast<SOCKET>(server.fd), 1) != 0) {
     return SocketError();
   }
 
   int addrlen = sizeof(addr);
   if (::getsockname(
-          server.fd, reinterpret_cast<sockaddr*>(&addr), &addrlen) != 0) {
+          static_cast<SOCKET>(server.fd),
+          reinterpret_cast<sockaddr*>(&addr),
+          &addrlen) != 0) {
     return SocketError();
   }
 
@@ -221,8 +223,8 @@ TEST_F(OsSendfileTest, SendfileAsync)
 
   DWORD sent = 0;
   DWORD flags = 0;
-  ASSERT_TRUE(
-      ::WSAGetOverlappedResult(s.get()[0], &overlapped, &sent, TRUE, &flags));
+  ASSERT_TRUE(::WSAGetOverlappedResult(
+      static_cast<SOCKET>(s.get()[0]), &overlapped, &sent, TRUE, &flags));
 
   EXPECT_SOME(os::close(fd.get()));
   EXPECT_SOME(os::close(s.get()[0]));

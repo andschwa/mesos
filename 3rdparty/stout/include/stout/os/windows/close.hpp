@@ -35,7 +35,7 @@ inline Try<Nothing> close(const int_fd& fd)
         return WindowsError(ERROR_INVALID_HANDLE);
       }
 
-      if (::CloseHandle(fd) == FALSE) {
+      if (!::CloseHandle(static_cast<HANDLE>(fd))) {
         return WindowsError();
       }
 
@@ -44,12 +44,13 @@ inline Try<Nothing> close(const int_fd& fd)
     case WindowsFD::Type::SOCKET: {
       // NOTE: Since closing an unconnected socket is not an error in POSIX,
       // we simply ignore it here.
-      if (::shutdown(fd, SD_BOTH) == SOCKET_ERROR &&
-          WSAGetLastError() != WSAENOTCONN) {
+      int result = ::shutdown(static_cast<SOCKET>(fd), SD_BOTH);
+      if ((result == SOCKET_ERROR) && (WSAGetLastError() != WSAENOTCONN)) {
         return WindowsSocketError("Failed to shutdown a socket");
       }
 
-      if (::closesocket(fd) == SOCKET_ERROR) {
+      result = ::closesocket(static_cast<SOCKET>(fd));
+      if (result == SOCKET_ERROR) {
         return WindowsSocketError("Failed to close a socket");
       }
 

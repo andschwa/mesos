@@ -28,13 +28,13 @@ inline Try<int_fd> dup(const int_fd& fd)
     case WindowsFD::Type::HANDLE: {
       HANDLE duplicate = INVALID_HANDLE_VALUE;
       const BOOL result = ::DuplicateHandle(
-          ::GetCurrentProcess(),  // Source process == current.
-          fd,                     // Handle to duplicate.
-          ::GetCurrentProcess(),  // Target process == current.
+          ::GetCurrentProcess(),   // Source process == current.
+          static_cast<HANDLE>(fd), // Handle to duplicate.
+          ::GetCurrentProcess(),   // Target process == current.
           &duplicate,
-          0,                      // Ignored (DUPLICATE_SAME_ACCESS).
-          FALSE,                  // Non-inheritable handle.
-          DUPLICATE_SAME_ACCESS); // Same access level as source.
+          0,                       // Ignored (DUPLICATE_SAME_ACCESS).
+          FALSE,                   // Non-inheritable handle.
+          DUPLICATE_SAME_ACCESS);  // Same access level as source.
 
       if (result == FALSE) {
         return WindowsError();
@@ -46,8 +46,9 @@ inline Try<int_fd> dup(const int_fd& fd)
     }
     case WindowsFD::Type::SOCKET: {
       WSAPROTOCOL_INFOW info;
-      const int result =
-        ::WSADuplicateSocketW(fd, ::GetCurrentProcessId(), &info);
+      const int result = ::WSADuplicateSocketW(
+          static_cast<SOCKET>(fd), ::GetCurrentProcessId(), &info);
+
       if (result != 0) {
         return SocketError();
       }

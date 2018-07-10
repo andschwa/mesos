@@ -35,8 +35,11 @@ inline Try<off_t> lseek(int_fd fd, off_t offset, int whence)
 
   // TODO(andschwa): This may need to be synchronized if users aren't
   // careful about sharing their file handles among threads.
-  const BOOL result =
-    ::SetFilePointerEx(fd, offset_, &new_offset, static_cast<DWORD>(whence));
+  const BOOL result = ::SetFilePointerEx(
+      static_cast<HANDLE>(fd),
+      offset_,
+      &new_offset,
+      static_cast<DWORD>(whence));
 
   if (result == FALSE) {
     return WindowsError();

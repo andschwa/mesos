@@ -39,8 +39,12 @@ inline Result<size_t> write_async(
   switch (fd.type()) {
     case WindowsFD::Type::HANDLE: {
       DWORD bytes;
-      const bool success =
-        ::WriteFile(fd, data, static_cast<DWORD>(size), &bytes, overlapped);
+      const bool success = ::WriteFile(
+          static_cast<HANDLE>(fd),
+          data,
+          static_cast<DWORD>(size),
+          &bytes,
+          overlapped);
 
       return ::internal::windows::process_async_io_result(success, bytes);
     }
@@ -58,8 +62,8 @@ inline Result<size_t> write_async(
       };
 
       DWORD bytes;
-      const int result =
-        ::WSASend(fd, &buf, 1, &bytes, 0, overlapped, nullptr);
+      const int result = ::WSASend(
+          static_cast<SOCKET>(fd), &buf, 1, &bytes, 0, overlapped, nullptr);
 
       return ::internal::windows::process_async_io_result(result == 0, bytes);
     }
@@ -79,8 +83,12 @@ inline ssize_t write(const int_fd& fd, const void* data, size_t size)
       // seekable overlapped files require an offset, which we don't track.
       if (!fd.is_overlapped()) {
         DWORD bytes;
-        const BOOL result =
-          ::WriteFile(fd, data, static_cast<DWORD>(size), &bytes, nullptr);
+        const BOOL result = ::WriteFile(
+            static_cast<HANDLE>(fd),
+            data,
+            static_cast<DWORD>(size),
+            &bytes,
+            nullptr);
 
         if (result == FALSE) {
           // Indicates an error, but we can't return a `WindowsError`.
@@ -112,8 +120,8 @@ inline ssize_t write(const int_fd& fd, const void* data, size_t size)
 
       // IO is pending, so wait for the overlapped object.
       DWORD bytes;
-      const BOOL wait_success =
-        ::GetOverlappedResult(fd, &overlapped, &bytes, TRUE);
+      const BOOL wait_success = ::GetOverlappedResult(
+          static_cast<HANDLE>(fd), &overlapped, &bytes, TRUE);
 
       if (wait_success == FALSE) {
         return -1;
@@ -122,7 +130,11 @@ inline ssize_t write(const int_fd& fd, const void* data, size_t size)
       return static_cast<ssize_t>(bytes);
     }
     case WindowsFD::Type::SOCKET: {
-      return ::send(fd, (const char*)data, static_cast<int>(size), 0);
+      return ::send(
+          static_cast<SOCKET>(fd),
+          static_cast<const char*>(data),
+          static_cast<int>(size),
+          0);
     }
   }
 

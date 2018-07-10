@@ -26,8 +26,8 @@ inline Try<Nothing> ftruncate(const int_fd& fd, off_t length)
 {
   FILE_END_OF_FILE_INFO info;
   info.EndOfFile.QuadPart = length;
-  if (::SetFileInformationByHandle(
-          fd, FileEndOfFileInfo, &info, sizeof(info)) == FALSE) {
+  if (!::SetFileInformationByHandle(
+          static_cast<HANDLE>(fd), FileEndOfFileInfo, &info, sizeof(info))) {
     return WindowsError();
   }
 

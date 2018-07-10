@@ -61,7 +61,9 @@ inline bool isdir(
 inline bool isdir(const int_fd& fd)
 {
   BY_HANDLE_FILE_INFORMATION info;
-  const BOOL result = ::GetFileInformationByHandle(fd, &info);
+  const BOOL result =
+    ::GetFileInformationByHandle(static_cast<HANDLE>(fd), &info);
+
   if (result == FALSE) {
     return false;
   }
@@ -134,7 +136,7 @@ inline Try<Bytes> size(const int_fd& fd)
 {
   LARGE_INTEGER file_size;
 
-  if (::GetFileSizeEx(fd, &file_size) == 0) {
+  if (::GetFileSizeEx(static_cast<HANDLE>(fd), &file_size) == 0) {
     return WindowsError();
   }
 

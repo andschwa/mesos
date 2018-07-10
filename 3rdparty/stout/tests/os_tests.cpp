@@ -1098,17 +1098,23 @@ TEST_F(OsTest, SYMLINK_Realpath)
   ASSERT_SOME(handle);
   FILE_ID_INFO fileInfo;
   BOOL result = ::GetFileInformationByHandleEx(
-    handle.get(), FileIdInfo, &fileInfo, sizeof(fileInfo));
+      static_cast<HANDLE>(handle.get()),
+      FileIdInfo,
+      &fileInfo,
+      sizeof(fileInfo));
   ASSERT_SOME(os::close(handle.get()));
-  ASSERT_EQ(TRUE, result);
+  ASSERT_TRUE(result);
 
   handle = os::open(testLink, O_RDONLY);
   ASSERT_SOME(handle);
   FILE_ID_INFO linkInfo;
   result = ::GetFileInformationByHandleEx(
-    handle.get(), FileIdInfo, &linkInfo, sizeof(linkInfo));
+      static_cast<HANDLE>(handle.get()),
+      FileIdInfo,
+      &linkInfo,
+      sizeof(linkInfo));
   ASSERT_SOME(os::close(handle.get()));
-  ASSERT_EQ(TRUE, result);
+  ASSERT_TRUE(result);
 
   ASSERT_EQ(fileInfo.VolumeSerialNumber, linkInfo.VolumeSerialNumber);
   ASSERT_TRUE(std::equal(

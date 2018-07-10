@@ -38,8 +38,12 @@ inline Result<size_t> read_async(
   switch (fd.type()) {
     case WindowsFD::Type::HANDLE: {
       DWORD bytes;
-      const bool success =
-        ::ReadFile(fd, data, static_cast<DWORD>(size), &bytes, overlapped);
+      const bool success = ::ReadFile(
+          static_cast<HANDLE>(fd),
+          data,
+          static_cast<DWORD>(size),
+          &bytes,
+          overlapped);
 
       // On failure, there are two EOF cases for reads:
       //   1) ERROR_BROKEN_PIPE: The write end is closed and there is no data.
@@ -67,8 +71,14 @@ inline Result<size_t> read_async(
 
       DWORD bytes;
       DWORD flags = 0;
-      const int result =
-        ::WSARecv(fd, &buf, 1, &bytes, &flags, overlapped, nullptr);
+      const int result = ::WSARecv(
+          static_cast<SOCKET>(fd),
+          &buf,
+          1,
+          &bytes,
+          &flags,
+          overlapped,
+          nullptr);
 
       return ::internal::windows::process_async_io_result(result == 0, bytes);
     }
@@ -90,8 +100,12 @@ inline ssize_t read(const int_fd& fd, void* data, size_t size)
       // seekable overlapped files require an offset, which we don't track.
       if (!fd.is_overlapped()) {
         DWORD bytes;
-        const BOOL result =
-          ::ReadFile(fd, data, static_cast<DWORD>(size), &bytes, nullptr);
+        const BOOL result = ::ReadFile(
+            static_cast<HANDLE>(fd),
+            data,
+            static_cast<DWORD>(size),
+            &bytes,
+            nullptr);
 
         if (result == FALSE) {
           // The pipe "breaks" when the other process closes its handle, but we
@@ -127,8 +141,8 @@ inline ssize_t read(const int_fd& fd, void* data, size_t size)
 
       // IO is pending, so wait for the overlapped object.
       DWORD bytes;
-      const BOOL wait_success =
-        ::GetOverlappedResult(fd, &overlapped, &bytes, TRUE);
+      const BOOL wait_success = ::GetOverlappedResult(
+          static_cast<HANDLE>(fd), &overlapped, &bytes, TRUE);
 
       if (wait_success == TRUE) {
         return bytes;
@@ -145,7 +159,11 @@ inline ssize_t read(const int_fd& fd, void* data, size_t size)
       return -1;
     }
     case WindowsFD::Type::SOCKET: {
-      return ::recv(fd, (char*)data, static_cast<unsigned int>(size), 0);
+      return ::recv(
+          static_cast<SOCKET>(fd),
+          static_cast<char*>(data),
+          static_cast<unsigned int>(size),
+          0);
     }
   }
 

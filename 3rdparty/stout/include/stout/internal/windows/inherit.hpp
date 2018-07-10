@@ -15,6 +15,7 @@
 
 #include <stout/error.hpp>
 #include <stout/nothing.hpp>
+#include <stout/result.hpp>
 #include <stout/try.hpp>
 #include <stout/windows.hpp>
 
@@ -98,7 +99,9 @@ create_attributes_list_for_handles(const std::vector<HANDLE>& handles)
 inline Try<Nothing> set_inherit(const int_fd& fd, const bool inherit)
 {
   const BOOL result = ::SetHandleInformation(
-      fd, HANDLE_FLAG_INHERIT, inherit ? HANDLE_FLAG_INHERIT : 0);
+      static_cast<HANDLE>(fd),
+      HANDLE_FLAG_INHERIT,
+      inherit ? HANDLE_FLAG_INHERIT : 0);
 
   if (result == FALSE) {
     return WindowsError();

@@ -159,7 +159,7 @@ public:
     return ::_open_osfhandle(reinterpret_cast<intptr_t>(handle_), O_RDWR);
   }
 
-  operator HANDLE() const
+  explicit operator HANDLE() const
   {
     // A `SOCKET` can be treated as a regular file `HANDLE` [1]. There are
     // many Win32 functions that work on a `SOCKET` but have the `HANDLE`
@@ -173,14 +173,15 @@ public:
     return handle_;
   }
 
-  operator SOCKET() const
+  explicit operator SOCKET() const
   {
     CHECK_EQ(Type::SOCKET, type());
     return socket_;
   }
 
   // On Windows, libevent's `evutil_socket_t` is set to `intptr_t`.
-  operator intptr_t() const
+  // TODO(andschwa): Remove this when libevent on Windows is removed.
+  explicit operator intptr_t() const
   {
     CHECK_EQ(Type::SOCKET, type());
     return static_cast<intptr_t>(socket_);

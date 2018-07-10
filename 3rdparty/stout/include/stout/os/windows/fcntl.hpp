@@ -53,7 +53,7 @@ inline Try<Nothing> nonblock(const int_fd& fd)
       const u_long non_block_mode = 1;
       u_long mode = non_block_mode;
 
-      int result = ::ioctlsocket(fd, FIONBIO, &mode);
+      const int result = ::ioctlsocket(static_cast<SOCKET>(fd), FIONBIO, &mode);
       if (result != NO_ERROR) {
         return WindowsSocketError();
       }

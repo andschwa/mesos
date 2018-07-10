@@ -31,8 +31,8 @@ inline Result<size_t> sendfile_async(
   CHECK_LE(length, INT_MAX - 1);
 
   const BOOL result = ::TransmitFile(
-      s,                          // Sending socket.
-      fd,                         // File to be sent.
+      static_cast<SOCKET>(s),     // Sending socket.
+      static_cast<HANDLE>(fd),    // File to be sent.
       static_cast<DWORD>(length), // Number of bytes to be sent from the file.
       0,                          // Bytes per send. 0 chooses system default.
       overlapped,                 // Overlapped object with file offset.
@@ -88,7 +88,8 @@ inline Try<ssize_t, SocketError> sendfile(
 
   DWORD sent = 0;
   DWORD flags = 0;
-  if (::WSAGetOverlappedResult(s, &from, &sent, TRUE, &flags) == TRUE) {
+  if (::WSAGetOverlappedResult(
+          static_cast<SOCKET>(s), &from, &sent, TRUE, &flags)) {
     return sent;
   }
 
