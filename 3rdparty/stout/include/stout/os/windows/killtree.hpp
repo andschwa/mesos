@@ -17,6 +17,8 @@
 #include <stout/try.hpp>
 #include <stout/windows.hpp> // For `SharedHandle` and `pid_t`.
 
+#include <stout/os/kill.hpp>
+
 #include <stout/os/windows/jobobject.hpp>
 
 namespace os {
@@ -32,6 +34,10 @@ inline Try<std::list<ProcessTree>> killtree(
     bool groups = false,
     bool sessions = false)
 {
+  // NOTE: This return value is unused. A future refactor
+  // may change the return type to `Try<None>`.
+  std::list<ProcessTree> return_value;
+
   const Try<std::wstring> name = os::name_job(pid);
   if (name.isError()) {
     return Error("Failed to determine job object name: " + name.error());
@@ -40,7 +46,18 @@ inline Try<std::list<ProcessTree>> killtree(
   Try<SharedHandle> handle =
     os::open_job(JOB_OBJECT_TERMINATE, false, name.get());
   if (handle.isError()) {
-    return Error("Failed to open job object: " + handle.error());
+    // NOTE: Most likely this means that the process "tree" wasn't in a job
+    // object at all (and so, as far as we intend for Windows, was not a tree).
+    // Thus we fallback to killing the process itself.
+    LOG(INFO) << "Failed to open job object: '" + handle.error() << "' for PID "
+              << pid;
+    if (os::kill(pid, signal) == KILL_FAIL) {
+      return Error(
+          "Failed to kill PID " + stringify(pid) +
+          " after also failing to open job object.");
+    }
+
+    return return_value;
   }
 
   Try<Nothing> killJobResult = os::kill_job(handle.get());
@@ -48,10 +65,7 @@ inline Try<std::list<ProcessTree>> killtree(
     return Error("Failed to delete job object: " + killJobResult.error());
   }
 
-  // NOTE: This return value is unused. A future refactor
-  // may change the return type to `Try<None>`.
-  std::list<ProcessTree> process_tree_list;
-  return process_tree_list;
+  return return_value;
 }
 
 } // namespace os {
