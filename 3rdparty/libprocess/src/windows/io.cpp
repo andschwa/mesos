@@ -79,6 +79,10 @@ Future<size_t> write(int_fd fd, const void* data, size_t size)
 Try<Nothing> prepare_async(int_fd fd)
 {
   if (fd.is_overlapped()) {
+    if (!libwinio_loop) {
+      return Error("Event loop not initialized!");
+    }
+
     return libwinio_loop->registerHandle(fd);
   }
 
