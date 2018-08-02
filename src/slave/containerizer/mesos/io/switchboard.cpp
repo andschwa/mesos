@@ -306,13 +306,6 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
 
   // On windows, we do not yet support running an io switchboard
   // server, so we must error out if it is required.
-#ifdef __WINDOWS__
-  if (requiresServer) {
-      return Failure(
-          "IO Switchboard server is not supported on windows");
-  }
-#endif
-
   LOG(INFO) << "Container logger module finished preparing container "
             << containerId << "; IOSwitchboard server is "
             << (requiresServer ? "" : "not") << " required";
@@ -327,12 +320,6 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
     return ContainerLaunchInfo();
   }
 
-#ifdef __WINDOWS__
-  // NOTE: On Windows, both return values of
-  // `IOSwitchboard::requiresServer(containerConfig)` are checked and will
-  // return before reaching here.
-  UNREACHABLE();
-#else
   // First make sure that we haven't already spawned an io
   // switchboard server for this container.
   if (infos.contains(containerId)) {
@@ -356,27 +343,29 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
   // be solely responsible for closing that end. The ownership of
   // the other end will be passed to the caller of this function
   // and eventually passed to the container being launched.
-  int stdinToFd = -1;
-  int stdoutFromFd = -1;
-  int stderrFromFd = -1;
+  int_fd stdinToFd = -1;
+  int_fd stdoutFromFd = -1;
+  int_fd stderrFromFd = -1;
 
   // A list of file descriptors we've opened so far.
-  hashset<int> openedFds = {};
+  hashset<int_fd> openedFds = {};
 
   // A list of file descriptors that will be passed to the I/O
   // switchboard. We need to close those file descriptors once the
   // I/O switchboard server is forked.
-  hashset<int> ioSwitchboardFds = {};
+  hashset<int_fd> ioSwitchboardFds = {};
 
   // Helper for closing a set of file descriptors.
-  auto close = [](const hashset<int>& fds) {
-    foreach (int fd, fds) {
+  auto close = [](const hashset<int_fd>& fds) {
+    foreach (int_fd fd, fds) {
       os::close(fd);
     }
   };
 
   // Setup a pseudo terminal for the container.
   if (hasTTY) {
+    return Failure("BAD");
+#ifndef __WINDOWS__
     // TODO(jieyu): Consider moving all TTY related method to stout.
     // For instance, 'stout/posix/tty.hpp'.
 
@@ -410,9 +399,9 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
 
     if (containerConfig.has_user()) {
       Try<Nothing> chown = os::chown(
-          containerConfig.user(),
-          slavePath.get(),
-          false);
+                                     containerConfig.user(),
+                                     slavePath.get(),
+                                     false);
 
       if (chown.isError()) {
         close(openedFds);
@@ -443,6 +432,7 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
     containerIO.err = containerIO.in;
 
     launchInfo.set_tty_slave_path(slavePath.get());
+#endif // __WINDOWS__
   } else {
     Try<std::array<int_fd, 2>> infds_ = os::pipe();
     if (infds_.isError()) {
@@ -487,7 +477,7 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
   }
 
   // Make sure all file descriptors opened have CLOEXEC set.
-  foreach (int fd, openedFds) {
+  foreach (int_fd fd, openedFds) {
     Try<Nothing> cloexec = os::cloexec(fd);
     if (cloexec.isError()) {
       close(openedFds);
@@ -590,10 +580,15 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
       environment,
       None(),
       parentHooks,
+#ifdef __WINDOWS__
+      {}
+#else
       {Subprocess::ChildHook::SETSID(),
        Subprocess::ChildHook::UNSET_CLOEXEC(stdinToFd),
        Subprocess::ChildHook::UNSET_CLOEXEC(stdoutFromFd),
-       Subprocess::ChildHook::UNSET_CLOEXEC(stderrFromFd)});
+       Subprocess::ChildHook::UNSET_CLOEXEC(stderrFromFd)}
+#endif // __WINDOWS__
+      );
 
   if (child.isError()) {
     close(openedFds);
@@ -610,7 +605,7 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
 
   // We remove the already closed file descriptors from 'openedFds' so
   // that we don't close multiple times if failures happen below.
-  foreach (int fd, ioSwitchboardFds) {
+  foreach (int_fd fd, ioSwitchboardFds) {
     openedFds.erase(fd);
   }
 
@@ -651,7 +646,6 @@ Future<Option<ContainerLaunchInfo>> IOSwitchboard::_prepare(
   containerIOs[containerId] = containerIO;
 
   return launchInfo;
-#endif // __WINDOWS__
 }
 
 
@@ -667,9 +661,6 @@ Future<http::Connection> IOSwitchboard::connect(
 Future<http::Connection> IOSwitchboard::_connect(
     const ContainerID& containerId) const
 {
-#ifdef __WINDOWS__
-  return Failure("Not supported on Windows");
-#else
   if (local) {
     return Failure("Not supported in local mode");
   }
@@ -679,6 +670,7 @@ Future<http::Connection> IOSwitchboard::_connect(
   }
 
   // Get the io switchboard address from the `containerId`.
+  // TODO(andschwa): Eric's socket work.
   Result<unix::Address> address = getContainerIOSwitchboardAddress(
       flags.runtime_dir, containerId);
 
@@ -706,7 +698,6 @@ Future<http::Connection> IOSwitchboard::_connect(
 
       return http::connect(address.get(), http::Scheme::HTTP);
     }));
-#endif // __WINDOWS__
 }
 
 
@@ -885,7 +876,6 @@ bool IOSwitchboard::requiresServer(const ContainerConfig& containerConfig)
 }
 
 
-#ifndef __WINDOWS__
 void IOSwitchboard::reaped(
     const ContainerID& containerId,
     const Future<Option<int>>& future)
@@ -944,7 +934,12 @@ public:
       int _stdoutToFd,
       int _stderrFromFd,
       int _stderrToFd,
+#ifdef __WINDOWS__
+      // TODO(andschwa): Eric's socket.
+      int_fd _socket,
+#else
       const unix::Socket& _socket,
+#endif // __WINDOWS__
       bool waitForConnection,
       Option<Duration> heartbeatInterval);
 
@@ -1020,17 +1015,27 @@ private:
       const agent::ProcessIO::Data::Type& type);
 
   bool tty;
-  int stdinToFd;
-  int stdoutFromFd;
-  int stdoutToFd;
-  int stderrFromFd;
-  int stderrToFd;
+  int_fd stdinToFd;
+  int_fd stdoutFromFd;
+  int_fd stdoutToFd;
+  int_fd stderrFromFd;
+  int_fd stderrToFd;
+#ifdef __WINDOWS__
+  // TODO(andschwa): Eric's socket.
+  int_fd socket;
+#else
   unix::Socket socket;
+#endif // __WINDOWS__
   bool waitForConnection;
   Option<Duration> heartbeatInterval;
   bool inputConnected;
   bool redirectFinished;  // Set when both stdout and stderr redirects finish.
+#ifdef __WINDOWS__
+  // TODO(andschwa): Eric's socket.
+  Future<int_fd> accept;
+#else
   Future<unix::Socket> accept;
+#endif // __WINDOWS__
   Promise<Nothing> promise;
   Promise<Nothing> startRedirect;
   // The following must be a `std::list`
@@ -1051,6 +1056,10 @@ Try<Owned<IOSwitchboardServer>> IOSwitchboardServer::create(
     bool waitForConnection,
     Option<Duration> heartbeatInterval)
 {
+  // TODO(andschwa): Eric's socket.
+#ifdef __WINDOWS__
+  Try<int_fd> socket = Error("BAD");
+#else
   Try<unix::Socket> socket = unix::Socket::create(SocketImpl::Kind::POLL);
   if (socket.isError()) {
     return Error("Failed to create socket: " + socket.error());
@@ -1061,7 +1070,7 @@ Try<Owned<IOSwitchboardServer>> IOSwitchboardServer::create(
   // been called. Therefore we initialize a unix socket using a provisional path
   // and rename it after `listen()` has been called.
   const string socketProvisionalPath =
-      getContainerIOSwitchboardSocketProvisionalPath(socketPath);
+    getContainerIOSwitchboardSocketProvisionalPath(socketPath);
 
   Try<unix::Address> address = unix::Address::create(socketProvisionalPath);
   if (address.isError()) {
@@ -1087,6 +1096,7 @@ Try<Owned<IOSwitchboardServer>> IOSwitchboardServer::create(
                  " to '" + socketPath + "': " + renameSocket.error());
   }
 
+#endif // __WINDOWS__
   return new IOSwitchboardServer(
       tty,
       stdinToFd,
@@ -1102,12 +1112,16 @@ Try<Owned<IOSwitchboardServer>> IOSwitchboardServer::create(
 
 IOSwitchboardServer::IOSwitchboardServer(
     bool tty,
-    int stdinToFd,
-    int stdoutFromFd,
-    int stdoutToFd,
-    int stderrFromFd,
-    int stderrToFd,
+    int_fd stdinToFd,
+    int_fd stdoutFromFd,
+    int_fd stdoutToFd,
+    int_fd stderrFromFd,
+    int_fd stderrToFd,
+#ifdef __WINDOWS__
+    int_fd socket,
+#else
     const unix::Socket& socket,
+#endif // __WINDOWS__
     bool waitForConnection,
     Option<Duration> heartbeatInterval)
   : process(new IOSwitchboardServerProcess(
@@ -1146,12 +1160,16 @@ Future<Nothing> IOSwitchboardServer::unblock()
 
 IOSwitchboardServerProcess::IOSwitchboardServerProcess(
     bool _tty,
-    int _stdinToFd,
-    int _stdoutFromFd,
-    int _stdoutToFd,
-    int _stderrFromFd,
-    int _stderrToFd,
+    int_fd _stdinToFd,
+    int_fd _stdoutFromFd,
+    int_fd _stdoutToFd,
+    int_fd _stderrFromFd,
+    int_fd _stderrToFd,
+#ifdef __WINDOWS__
+    int_fd _socket,
+#else
     const unix::Socket& _socket,
+#endif // __WINDOWS__
     bool _waitForConnection,
     Option<Duration> _heartbeatInterval)
   : tty(_tty),
@@ -1335,29 +1353,34 @@ void IOSwitchboardServerProcess::heartbeatLoop()
 
 void IOSwitchboardServerProcess::acceptLoop()
 {
+#ifdef __WINDOWS__
+  // TODO(andschwa): Eric's socket.
+#else
+
   // Store the server socket's `accept` future so that we can discard
   // it during process finalization. Otherwise, we would maintain a
   // reference to the socket, causing a leak.
   accept = socket.accept()
     .onAny(defer(self(), [this](const Future<unix::Socket>& socket) {
-      if (!socket.isReady()) {
-        failure = Failure("Failed trying to accept connection");
-        terminate(self(), false);
-        return;
-      }
+                           if (!socket.isReady()) {
+                             failure = Failure("Failed trying to accept connection");
+                             terminate(self(), false);
+                             return;
+                           }
 
-      // We intentionally ignore errors on the serve path, and assume
-      // that they will eventually be propagated back to the client in
-      // one form or another (e.g. a timeout on the client side). We
-      // explicitly *don't* want to kill the whole server though, just
-      // beause a single connection fails.
-      http::serve(
-          socket.get(),
-          defer(self(), &Self::handler, lambda::_1));
+                           // We intentionally ignore errors on the serve path, and assume
+                           // that they will eventually be propagated back to the client in
+                           // one form or another (e.g. a timeout on the client side). We
+                           // explicitly *don't* want to kill the whole server though, just
+                           // beause a single connection fails.
+                           http::serve(
+                                       socket.get(),
+                                       defer(self(), &Self::handler, lambda::_1));
 
-      // Use `dispatch` to limit the size of the call stack.
-      dispatch(self(), &Self::acceptLoop);
-    }));
+                           // Use `dispatch` to limit the size of the call stack.
+                           dispatch(self(), &Self::acceptLoop);
+                         }));
+#endif // __WINDOWS__
 }
 
 
@@ -1644,18 +1667,22 @@ Future<http::Response> IOSwitchboardServerProcess::attachContainerInput(
                 // TODO(klueska): Return a failure if the container we are
                 // attaching to does not have a tty associated with it.
 
+#ifdef __WINDOWS__
+                UNREACHABLE();
+#else
                 // Update the window size.
                 Try<Nothing> window = os::setWindowSize(
-                    stdinToFd,
-                    message.control().tty_info().window_size().rows(),
-                    message.control().tty_info().window_size().columns());
+                                                        stdinToFd,
+                                                        message.control().tty_info().window_size().rows(),
+                                                        message.control().tty_info().window_size().columns());
 
                 if (window.isError()) {
                   return Break(http::BadRequest(
-                      "Unable to set the window size: " + window.error()));
+                                                "Unable to set the window size: " + window.error()));
                 }
 
                 return Continue();
+#endif // __WINDOWS__
               }
               case agent::ProcessIO::Control::HEARTBEAT: {
                 // For now, we ignore any interval information
@@ -1794,7 +1821,6 @@ void IOSwitchboardServerProcess::outputHook(
     connection.send(message);
   }
 }
-#endif // __WINDOWS__
 
 } // namespace slave {
 } // namespace internal {

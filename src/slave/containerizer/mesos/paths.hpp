@@ -127,7 +127,6 @@ Result<int> getContainerStatus(
     const ContainerID& containerId);
 
 
-#ifndef __WINDOWS__
 // The helper method to get the io switchboard directory path.
 std::string getContainerIOSwitchboardPath(
     const std::string& runtimeDir,
@@ -169,7 +168,6 @@ std::string getContainerIOSwitchboardSocketProvisionalPath(
 Result<process::network::unix::Address> getContainerIOSwitchboardAddress(
     const std::string& runtimeDir,
     const ContainerID& containerId);
-#endif
 
 
 // The helper method to get the destroy on recovery file path.

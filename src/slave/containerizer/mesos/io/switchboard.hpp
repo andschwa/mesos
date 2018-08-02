@@ -119,11 +119,9 @@ private:
   process::Future<Option<mesos::slave::ContainerIO>> _extractContainerIO(
       const ContainerID& containerID);
 
-#ifndef __WINDOWS__
   void reaped(
       const ContainerID& containerId,
       const process::Future<Option<int>>& future);
-#endif // __WINDOWS__
 
   Flags flags;
   bool local;
@@ -141,7 +139,6 @@ private:
 };
 
 
-#ifndef __WINDOWS__
 // The `IOSwitchboardServer` encapsulates the server side logic for
 // redirecting the `stdin/stdout/stderr` of a container to/from
 // multiple sources/targets. It runs an HTTP server over a unix domain
@@ -223,11 +220,11 @@ public:
     }
 
     bool tty;
-    Option<int> stdin_to_fd;
-    Option<int> stdout_from_fd;
-    Option<int> stdout_to_fd;
-    Option<int> stderr_from_fd;
-    Option<int> stderr_to_fd;
+    Option<int_fd> stdin_to_fd;
+    Option<int_fd> stdout_from_fd;
+    Option<int_fd> stdout_to_fd;
+    Option<int_fd> stderr_from_fd;
+    Option<int_fd> stderr_to_fd;
     Option<std::string> socket_path;
     bool wait_for_connection;
     Option<Duration> heartbeat_interval;
@@ -237,11 +234,11 @@ public:
 
   static Try<process::Owned<IOSwitchboardServer>> create(
       bool tty,
-      int stdinToFd,
-      int stdoutFromFd,
-      int stdoutToFd,
-      int stderrFromFd,
-      int stderrToFd,
+      int_fd stdinToFd,
+      int_fd stdoutFromFd,
+      int_fd stdoutToFd,
+      int_fd stderrFromFd,
+      int_fd stderrToFd,
       const std::string& socketPath,
       bool waitForConnection = false,
       Option<Duration> heartbeatInterval = None());
@@ -258,18 +255,22 @@ public:
 private:
   IOSwitchboardServer(
       bool tty,
-      int stdinToFd,
-      int stdoutFromFd,
-      int stdoutToFd,
-      int stderrFromFd,
-      int stderrToFd,
+      int_fd stdinToFd,
+      int_fd stdoutFromFd,
+      int_fd stdoutToFd,
+      int_fd stderrFromFd,
+      int_fd stderrToFd,
+#ifdef __WINDOWS__
+      // TODO(andschwa): Eric's socket.
+      int_fd socket,
+#else
       const process::network::unix::Socket& socket,
+#endif // __WINDOWS__
       bool waitForConnection,
       Option<Duration> heartbeatInterval);
 
   process::Owned<IOSwitchboardServerProcess> process;
 };
-#endif // __WINDOWS__
 
 } // namespace slave {
 } // namespace internal {

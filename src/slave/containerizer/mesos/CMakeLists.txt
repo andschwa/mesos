@@ -19,10 +19,10 @@
 add_executable(mesos-containerizer main.cpp)
 target_link_libraries(mesos-containerizer PRIVATE mesos)
 
-if (NOT WIN32)
-  add_executable(mesos-io-switchboard io/switchboard_main.cpp)
-  target_link_libraries(mesos-io-switchboard PRIVATE mesos)
+add_executable(mesos-io-switchboard io/switchboard_main.cpp)
+target_link_libraries(mesos-io-switchboard PRIVATE mesos)
 
+if (NOT WIN32)
   add_executable(
     mesos-cni-port-mapper
     isolators/network/cni/plugins/port_mapper/main.cpp

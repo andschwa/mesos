@@ -154,7 +154,6 @@ Result<int> getContainerStatus(
 }
 
 
-#ifndef __WINDOWS__
 string getContainerIOSwitchboardPath(
     const string& runtimeDir,
     const ContainerID& containerId)
@@ -259,7 +258,6 @@ Result<unix::Address> getContainerIOSwitchboardAddress(
 
   return address.get();
 }
-#endif // __WINDOWS__
 
 
 string getContainerForceDestroyOnRecoveryPath(

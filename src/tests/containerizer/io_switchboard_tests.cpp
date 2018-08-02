@@ -89,7 +89,6 @@ namespace mesos {
 namespace internal {
 namespace tests {
 
-#ifndef __WINDOWS__
 class IOSwitchboardServerTest : public TemporaryDirectoryTest
 {
 protected:
@@ -165,7 +164,7 @@ protected:
 
 TEST_F(IOSwitchboardServerTest, RedirectLog)
 {
-  Try<int> nullFd = os::open(os::DEV_NULL, O_RDWR);
+  Try<int_fd> nullFd = os::open(os::DEV_NULL, O_RDWR);
   ASSERT_SOME(nullFd);
 
   Try<std::array<int_fd, 2>> stdoutPipe_ = os::pipe();
@@ -179,7 +178,7 @@ TEST_F(IOSwitchboardServerTest, RedirectLog)
   const std::array<int_fd, 2>& stderrPipe = stderrPipe_.get();
 
   string stdoutPath = path::join(sandbox.get(), "stdout");
-  Try<int> stdoutFd = os::open(
+  Try<int_fd> stdoutFd = os::open(
       stdoutPath,
       O_RDWR | O_CREAT,
       S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -187,7 +186,7 @@ TEST_F(IOSwitchboardServerTest, RedirectLog)
   ASSERT_SOME(stdoutFd);
 
   string stderrPath = path::join(sandbox.get(), "stderr");
-  Try<int> stderrFd = os::open(
+  Try<int_fd> stderrFd = os::open(
       stderrPath,
       O_RDWR | O_CREAT,
       S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -251,24 +250,27 @@ TEST_F(IOSwitchboardServerTest, RedirectLog)
 }
 
 
+#ifdef __WINDOWS__
+// TODO(andschwa): Eric.
+#else
 TEST_F(IOSwitchboardServerTest, AttachOutput)
 {
-  Try<int> nullFd = os::open(os::DEV_NULL, O_RDWR);
+  Try<int_fd> nullFd = os::open(os::DEV_NULL, O_RDWR);
   ASSERT_SOME(nullFd);
 
   string stdoutPath = path::join(sandbox.get(), "stdout");
-  Try<int> stdoutFd = os::open(
-      stdoutPath,
-      O_WRONLY | O_CREAT,
-      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  Try<int_fd> stdoutFd = os::open(
+                                  stdoutPath,
+                                  O_WRONLY | O_CREAT,
+                                  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
   ASSERT_SOME(stdoutFd);
 
   string stderrPath = path::join(sandbox.get(), "stderr");
-  Try<int> stderrFd = os::open(
-      stderrPath,
-      O_WRONLY | O_CREAT,
-      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  Try<int_fd> stderrFd = os::open(
+                                  stderrPath,
+                                  O_WRONLY | O_CREAT,
+                                  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
   ASSERT_SOME(stderrFd);
 
@@ -303,14 +305,14 @@ TEST_F(IOSwitchboardServerTest, AttachOutput)
   string socketPath = path::join(sandbox.get(), "mesos-io-switchboard");
 
   Try<Owned<IOSwitchboardServer>> server = IOSwitchboardServer::create(
-      false,
-      nullFd.get(),
-      stdoutFd.get(),
-      nullFd.get(),
-      stderrFd.get(),
-      nullFd.get(),
-      socketPath,
-      true);
+                                                                       false,
+                                                                       nullFd.get(),
+                                                                       stdoutFd.get(),
+                                                                       nullFd.get(),
+                                                                       stderrFd.get(),
+                                                                       nullFd.get(),
+                                                                       socketPath,
+                                                                       true);
 
   ASSERT_SOME(server);
 
@@ -358,7 +360,11 @@ TEST_F(IOSwitchboardServerTest, AttachOutput)
   os::close(stderrFd.get());
 }
 
+#endif // __WINDOWS__
 
+#ifdef __WINDOWS__
+// TODO(ERIC)
+#else
 TEST_F(IOSwitchboardServerTest, SendHeartbeat)
 {
   // We use a pipe in this test to prevent the switchboard from
@@ -369,7 +375,7 @@ TEST_F(IOSwitchboardServerTest, SendHeartbeat)
 
   const std::array<int_fd, 2>& stdoutPipe = stdoutPipe_.get();
 
-  Try<int> nullFd = os::open(os::DEV_NULL, O_RDWR);
+  Try<int_fd> nullFd = os::open(os::DEV_NULL, O_RDWR);
   ASSERT_SOME(nullFd);
 
   Duration heartbeat = Milliseconds(10);
@@ -377,15 +383,15 @@ TEST_F(IOSwitchboardServerTest, SendHeartbeat)
   string socketPath = path::join(sandbox.get(), "mesos-io-switchboard");
 
   Try<Owned<IOSwitchboardServer>> server = IOSwitchboardServer::create(
-      false,
-      nullFd.get(),
-      stdoutPipe[0],
-      nullFd.get(),
-      nullFd.get(),
-      nullFd.get(),
-      socketPath,
-      false,
-      heartbeat);
+                                                                       false,
+                                                                       nullFd.get(),
+                                                                       stdoutPipe[0],
+                                                                       nullFd.get(),
+                                                                       nullFd.get(),
+                                                                       nullFd.get(),
+                                                                       socketPath,
+                                                                       false,
+                                                                       heartbeat);
 
   ASSERT_SOME(server);
 
@@ -425,12 +431,12 @@ TEST_F(IOSwitchboardServerTest, SendHeartbeat)
   ASSERT_SOME(reader);
 
   auto deserializer = [](const string& body) {
-    return deserialize<agent::ProcessIO>(ContentType::JSON, body);
-  };
+                        return deserialize<agent::ProcessIO>(ContentType::JSON, body);
+                      };
 
   recordio::Reader<agent::ProcessIO> responseDecoder(
-      ::recordio::Decoder<agent::ProcessIO>(deserializer),
-      reader.get());
+                                                     ::recordio::Decoder<agent::ProcessIO>(deserializer),
+                                                     reader.get());
 
   // Wait for 5 heartbeat messages.
   Clock::pause();
@@ -464,8 +470,11 @@ TEST_F(IOSwitchboardServerTest, SendHeartbeat)
   os::close(stdoutPipe[0]);
   os::close(nullFd.get());
 }
+#endif // __WINDOWS__
 
-
+#ifdef __WINDOWS__
+// TODO
+#else
 TEST_F(IOSwitchboardServerTest, AttachInput)
 {
   // We use a pipe in this test to prevent the switchboard from
@@ -476,28 +485,28 @@ TEST_F(IOSwitchboardServerTest, AttachInput)
 
   const std::array<int_fd, 2>& stdoutPipe = stdoutPipe_.get();
 
-  Try<int> nullFd = os::open(os::DEV_NULL, O_RDWR);
+  Try<int_fd> nullFd = os::open(os::DEV_NULL, O_RDWR);
   ASSERT_SOME(nullFd);
 
   string stdinPath = path::join(sandbox.get(), "stdin");
-  Try<int> stdinFd = os::open(
-      stdinPath,
-      O_RDWR | O_CREAT,
-      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  Try<int_fd> stdinFd = os::open(
+                                 stdinPath,
+                                 O_RDWR | O_CREAT,
+                                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
   ASSERT_SOME(stdinFd);
 
   string socketPath = path::join(sandbox.get(), "mesos-io-switchboard");
 
   Try<Owned<IOSwitchboardServer>> server = IOSwitchboardServer::create(
-      false,
-      stdinFd.get(),
-      stdoutPipe[0],
-      nullFd.get(),
-      nullFd.get(),
-      nullFd.get(),
-      socketPath,
-      false);
+                                                                       false,
+                                                                       stdinFd.get(),
+                                                                       stdoutPipe[0],
+                                                                       nullFd.get(),
+                                                                       nullFd.get(),
+                                                                       nullFd.get(),
+                                                                       socketPath,
+                                                                       false);
 
   ASSERT_SOME(server);
 
@@ -535,7 +544,7 @@ TEST_F(IOSwitchboardServerTest, AttachInput)
   ASSERT_SOME(address);
 
   Future<http::Connection> _connection = http::connect(
-      address.get(), http::Scheme::HTTP);
+                                                       address.get(), http::Scheme::HTTP);
 
   AWAIT_READY(_connection);
   http::Connection connection = _connection.get();
@@ -543,7 +552,7 @@ TEST_F(IOSwitchboardServerTest, AttachInput)
   Future<http::Response> response = connection.send(request);
 
   ::recordio::Encoder<mesos::agent::Call> encoder(lambda::bind(
-        serialize, ContentType::JSON, lambda::_1));
+                                                               serialize, ContentType::JSON, lambda::_1));
 
   Call call;
   call.set_type(Call::ATTACH_CONTAINER_INPUT);
@@ -596,7 +605,11 @@ TEST_F(IOSwitchboardServerTest, AttachInput)
   EXPECT_EQ(data, stdinData.get());
 }
 
+#endif // __WINDOWS__
 
+#ifdef __WINDOWS__
+// TODO
+#else
 TEST_F(IOSwitchboardServerTest, ReceiveHeartbeat)
 {
   // We use a pipe in this test to prevent the switchboard from
@@ -607,20 +620,20 @@ TEST_F(IOSwitchboardServerTest, ReceiveHeartbeat)
 
   const std::array<int_fd, 2>& stdoutPipe = stdoutPipe_.get();
 
-  Try<int> nullFd = os::open(os::DEV_NULL, O_RDWR);
+  Try<int_fd> nullFd = os::open(os::DEV_NULL, O_RDWR);
   ASSERT_SOME(nullFd);
 
   string socketPath = path::join(sandbox.get(), "mesos-io-switchboard");
 
   Try<Owned<IOSwitchboardServer>> server = IOSwitchboardServer::create(
-      false,
-      nullFd.get(),
-      stdoutPipe[0],
-      nullFd.get(),
-      nullFd.get(),
-      nullFd.get(),
-      socketPath,
-      false);
+                                                                       false,
+                                                                       nullFd.get(),
+                                                                       stdoutPipe[0],
+                                                                       nullFd.get(),
+                                                                       nullFd.get(),
+                                                                       nullFd.get(),
+                                                                       socketPath,
+                                                                       false);
 
   ASSERT_SOME(server);
 
@@ -653,7 +666,7 @@ TEST_F(IOSwitchboardServerTest, ReceiveHeartbeat)
   Future<http::Response> response = connection.send(request);
 
   ::recordio::Encoder<mesos::agent::Call> encoder(lambda::bind(
-      serialize, ContentType::JSON, lambda::_1));
+                                                               serialize, ContentType::JSON, lambda::_1));
 
   Call call;
   call.set_type(Call::ATTACH_CONTAINER_INPUT);
@@ -674,9 +687,9 @@ TEST_F(IOSwitchboardServerTest, ReceiveHeartbeat)
     ProcessIO* message = attach->mutable_process_io();
     message->set_type(agent::ProcessIO::CONTROL);
     message->mutable_control()->set_type(
-        agent::ProcessIO::Control::HEARTBEAT);
+                                         agent::ProcessIO::Control::HEARTBEAT);
     message->mutable_control()->mutable_heartbeat()
-        ->mutable_interval()->set_nanoseconds(heartbeat.ns());
+      ->mutable_interval()->set_nanoseconds(heartbeat.ns());
 
     writer.write(encoder.encode(call));
 
@@ -701,6 +714,7 @@ TEST_F(IOSwitchboardServerTest, ReceiveHeartbeat)
   os::close(nullFd.get());
 }
 
+#endif // __WINDOWS__
 
 class IOSwitchboardTest
   : public ContainerizerTest<slave::MesosContainerizer> {};
@@ -709,9 +723,13 @@ class IOSwitchboardTest
 TEST_F(IOSwitchboardTest, ContainerAttach)
 {
   slave::Flags flags = CreateSlaveFlags();
+#ifdef __WINDOWS__
+  flags.launcher = "windows";
+  flags.isolation = "windows/cpu";
+#else
   flags.launcher = "posix";
   flags.isolation = "posix/cpu";
-
+#endif // __WINDOWS__
   Fetcher fetcher(flags);
 
   Try<MesosContainerizer*> create = MesosContainerizer::create(
@@ -736,7 +754,7 @@ TEST_F(IOSwitchboardTest, ContainerAttach)
 
   ExecutorInfo executorInfo = createExecutorInfo(
       "executor",
-      "sleep 1000",
+      SLEEP_COMMAND(1000),
       "cpus:1");
 
   // Request a tty for the container to enable attaching.
@@ -760,7 +778,11 @@ TEST_F(IOSwitchboardTest, ContainerAttach)
   AWAIT_READY(termination);
   ASSERT_SOME(termination.get());
   ASSERT_TRUE(termination.get()->has_status());
+#ifdef __WINDOWS__
+  // TODO
+#else
   EXPECT_WTERMSIG_EQ(SIGKILL, termination.get()->status());
+#endif // __WINDOWS__
 }
 
 
@@ -769,8 +791,13 @@ TEST_F(IOSwitchboardTest, ContainerAttach)
 TEST_F(IOSwitchboardTest, OutputRedirectionWithTTY)
 {
   slave::Flags flags = CreateSlaveFlags();
+#ifdef __WINDOWS__
+  flags.launcher = "windows";
+  flags.isolation = "windows/cpu";
+#else
   flags.launcher = "posix";
   flags.isolation = "posix/cpu";
+#endif // __WINDOWS__
 
   Fetcher fetcher(flags);
 
@@ -830,8 +857,13 @@ TEST_F(IOSwitchboardTest, OutputRedirectionWithTTY)
 TEST_F(IOSwitchboardTest, KillSwitchboardContainerDestroyed)
 {
   slave::Flags flags = CreateSlaveFlags();
+#ifdef __WINDOWS__
+  flags.launcher = "windows";
+  flags.isolation = "windows/cpu";
+#else
   flags.launcher = "posix";
   flags.isolation = "posix/cpu";
+#endif // __WINDOWS__
 
   Fetcher fetcher(flags);
 
@@ -857,7 +889,7 @@ TEST_F(IOSwitchboardTest, KillSwitchboardContainerDestroyed)
 
   ExecutorInfo executorInfo = createExecutorInfo(
       "executor",
-      "sleep 1000",
+      SLEEP_COMMAND(1000),
       "cpus:1");
 
   Future<Containerizer::LaunchResult> launch = containerizer->launch(
@@ -875,7 +907,7 @@ TEST_F(IOSwitchboardTest, KillSwitchboardContainerDestroyed)
   launch = containerizer->launch(
       childContainerId,
       createContainerConfig(
-          createCommandInfo("sleep 1000"),
+          createCommandInfo(SLEEP_COMMAND(1000)),
           None(),
           mesos::slave::ContainerClass::DEBUG),
       map<string, string>(),
@@ -897,7 +929,11 @@ TEST_F(IOSwitchboardTest, KillSwitchboardContainerDestroyed)
   ASSERT_SOME(wait.get());
 
   ASSERT_TRUE(wait.get()->has_status());
+#ifdef __WINDOWS__
+  // TODO
+#else
   EXPECT_WTERMSIG_EQ(SIGKILL, wait.get()->status());
+#endif // __WINDOWS__
 
   ASSERT_TRUE(wait.get()->has_reason());
   ASSERT_EQ(TaskStatus::REASON_IO_SWITCHBOARD_EXITED,
@@ -910,7 +946,11 @@ TEST_F(IOSwitchboardTest, KillSwitchboardContainerDestroyed)
   ASSERT_SOME(termination.get());
 
   ASSERT_TRUE(termination.get()->has_status());
+#ifdef __WINDOWS__
+  // TODO
+#else
   EXPECT_WTERMSIG_EQ(SIGKILL, termination.get()->status());
+#endif // __WINDOWS__
 }
 
 
@@ -923,8 +963,13 @@ TEST_F(IOSwitchboardTest, DISABLED_RecoverThenKillSwitchboardContainerDestroyed)
   ASSERT_SOME(master);
 
   slave::Flags flags = CreateSlaveFlags();
+#ifdef __WINDOWS__
+  flags.launcher = "windows";
+  flags.isolation = "windows/cpu";
+#else
   flags.launcher = "posix";
   flags.isolation = "posix/cpu";
+#endif // __WINDOWS__
 
   Fetcher fetcher(flags);
 
@@ -968,7 +1013,7 @@ TEST_F(IOSwitchboardTest, DISABLED_RecoverThenKillSwitchboardContainerDestroyed)
   ASSERT_FALSE(offers->empty());
 
   // Launch a task with tty to start the switchboard server.
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
   task.mutable_container()->set_type(ContainerInfo::MESOS);
   task.mutable_container()->mutable_tty_info();
 
@@ -1050,8 +1095,13 @@ TEST_F(IOSwitchboardTest, ContainerAttachAfterSlaveRestart)
   ASSERT_SOME(master);
 
   slave::Flags flags = CreateSlaveFlags();
+#ifdef __WINDOWS__
+  flags.launcher = "windows";
+  flags.isolation = "windows/cpu";
+#else
   flags.launcher = "posix";
   flags.isolation = "posix/cpu";
+#endif // __WINDOWS__
 
   Fetcher fetcher(flags);
 
@@ -1106,7 +1156,7 @@ TEST_F(IOSwitchboardTest, ContainerAttachAfterSlaveRestart)
     FUTURE_DISPATCH(_, &slave::Slave::_statusUpdateAcknowledgement);
 
   // Launch a task with tty to start the switchboard server.
-  TaskInfo task = createTask(offers.get()[0], "sleep 1000");
+  TaskInfo task = createTask(offers.get()[0], SLEEP_COMMAND(1000));
   task.mutable_container()->set_type(ContainerInfo::MESOS);
   task.mutable_container()->mutable_tty_info();
 
@@ -1151,8 +1201,6 @@ TEST_F(IOSwitchboardTest, ContainerAttachAfterSlaveRestart)
   driver.stop();
   driver.join();
 }
-
-#endif // __WINDOWS__
 
 } // namespace tests {
 } // namespace internal {

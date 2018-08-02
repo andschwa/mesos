@@ -48,10 +48,10 @@ static void sigtermHandler(int sig)
 {
   int write = -1;
   do {
-    write = ::write(unblockFds[1], "\0", 1);
+    write = os::write(unblockFds[1], "\0", 1);
   } while (write == -1 && errno == EINTR);
 
-  ::close(unblockFds[1]);
+  os::close(unblockFds[1]);
 
   if (write == -1) {
     ABORT("Failed to terminate io switchboard gracefully");
@@ -111,10 +111,12 @@ int main(int argc, char** argv)
 
   unblockFds = pipe.get();
 
+#ifndef __WINDOWS__
   if (os::signals::install(SIGTERM, sigtermHandler) != 0) {
     EXIT(EXIT_FAILURE) << "Failed to register signal"
                        << " '" + stringify(strsignal(SIGTERM)) << "'";
   }
+#endif // __WINDOWS__
 
   Try<Owned<IOSwitchboardServer>> server = IOSwitchboardServer::create(
       flags.tty,
