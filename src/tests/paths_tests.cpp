@@ -45,7 +45,11 @@ public:
   {
     slaveId.set_value("agent1");
     frameworkId.set_value("framework1");
-    executorId.set_value("executor1");
+    // NOTE: This in particular tests an edge case on Windows where
+    // some frameworks, e.g. Chronos, use `:` in their `executorId`
+    // field, and this is a reserved character on Windows. It is
+    // elsewhere unsupported.
+    executorId.set_value("executor:1");
     taskId.set_value("task1");
     containerId.set_value(id::UUID::random().toString());
     role = "role1";
@@ -95,7 +99,11 @@ TEST_F(PathsTest, CreateExecutorDirectory)
       "frameworks",
       frameworkId.value(),
       "executors",
+#ifdef __WINDOWS__
+      strings::replace(stringify(executorId.value()), ":", "%3A"),
+#else
       executorId.value(),
+#endif // __WINDOWS__
       "runs",
       containerId.value());
 
@@ -205,13 +213,21 @@ TEST_F(PathsTest, Executor)
               frameworkId),
           "executors");
 
-  EXPECT_EQ(path::join(executorsRoot, executorId.value()),
-            paths::getExecutorPath(rootDir, slaveId, frameworkId, executorId));
+#ifdef __WINDOWS__
+  const string executorPath =
+    strings::replace(stringify(executorId.value()), ":", "%3A");
+#else
+  const string executorPath = executorId.value();
+#endif // __WINDOWS__
+
+  EXPECT_EQ(
+      path::join(executorsRoot, executorPath),
+      paths::getExecutorPath(rootDir, slaveId, frameworkId, executorId));
 
   EXPECT_EQ(
       path::join(
           executorsRoot,
-          executorId.value(),
+          executorPath,
           "runs",
           containerId.value()),
       paths::getExecutorRunPath(

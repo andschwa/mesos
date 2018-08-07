@@ -117,7 +117,14 @@ Try<ExecutorRunPath> parseExecutorRunPath(
 
     path.slaveId.set_value(tokens[1]);
     path.frameworkId.set_value(tokens[3]);
+    // NOTE: On Windows, `:` is a reserved character, and thus is
+    // escaped to `%3A` when written to disk as part of an
+    // `executorId`, so we have to unescape it.
+#ifdef __WINDOWS__
+    path.executorId.set_value(strings::replace(tokens[5], "%3A", ":"));
+#else
     path.executorId.set_value(tokens[5]);
+#endif // __WINDOWS__
     path.containerId.set_value(tokens[7]);
 
     return path;
@@ -254,7 +261,18 @@ string getExecutorPath(
   return path::join(
         getFrameworkPath(rootDir, slaveId, frameworkId),
         EXECUTORS_DIR,
-        stringify(executorId));
+        // NOTE: On Windows, `:` is a reserved character, and thus is
+        // escaped to its ASCII equivalent `%3A` when written to disk
+        // as part of an `executorId`. See MESOS-9109.
+        //
+        // TODO(andschwa): Maybe overload stringify for `executorId`,
+        // but then it would be escaped when printed too.
+#ifdef __WINDOWS__
+        strings::replace(stringify(executorId), ":", "%3A")
+#else
+        stringify(executorId)
+#endif // __WINDOWS__
+        );
 }
 
 
@@ -341,7 +359,15 @@ string getExecutorVirtualPath(
       stringify(os::PATH_SEPARATOR) + FRAMEWORKS_DIR,
       stringify(frameworkId),
       EXECUTORS_DIR,
+      // NOTE: On Windows, `:` is a reserved character, and thus is
+      // escaped to its ASCII equivalent `%3A` when written to disk as
+      // part of an `executorId`. See MESOS-9109.
+#ifdef __WINDOWS__
+      strings::replace(stringify(executorId), ":", "%3A"),
+
+#else
       stringify(executorId),
+#endif // __WINDOWS__
       EXECUTOR_RUNS_DIR,
       LATEST_SYMLINK);
 }
