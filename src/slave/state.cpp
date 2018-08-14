@@ -455,7 +455,14 @@ Try<RunState> RunState::recover(
   // Recover tasks.
   foreach (const string& path, tasks.get()) {
     TaskID taskId;
+    // NOTE: On Windows, `:` is a reserved character, and thus is
+    // escaped to `%3A` when written to disk as part of a `taskId`, so
+    // we have to unescape it.
+#ifdef __WINDOWS__
+    taskId.set_value(strings::replace(Path(path).basename(), "%3A", ":"));
+#else
     taskId.set_value(Path(path).basename());
+#endif // __WINDOWS__
 
     Try<TaskState> task = TaskState::recover(
         rootDir, slaveId, frameworkId, executorId, containerId, taskId, strict);

@@ -50,7 +50,7 @@ public:
     // field, and this is a reserved character on Windows. It is
     // elsewhere unsupported.
     executorId.set_value("executor:1");
-    taskId.set_value("task1");
+    taskId.set_value("task:1");
     containerId.set_value(id::UUID::random().toString());
     role = "role1";
     persistenceId = "persistenceId1";
@@ -272,8 +272,15 @@ TEST_F(PathsTest, Task)
               containerId),
           "tasks");
 
+#ifdef __WINDOWS__
+  const string taskPath =
+    path::join(tasksRoot, strings::replace(taskId.value(), ":", "%3A"));
+#else
+  const string taskPath = path::join(tasksRoot, taskId.value());
+#endif // __WINDOWS__
+
   EXPECT_EQ(
-      path::join(tasksRoot, taskId.value()),
+      taskPath,
       paths::getTaskPath(
           rootDir,
           slaveId,

@@ -453,13 +453,17 @@ string getTaskPath(
 {
   return path::join(
       getExecutorRunPath(
-          rootDir,
-          slaveId,
-          frameworkId,
-          executorId,
-          containerId),
+          rootDir, slaveId, frameworkId, executorId, containerId),
       "tasks",
-      stringify(taskId));
+      // NOTE: On Windows, `:` is a reserved character, and thus is
+      // escaped to its ASCII equivalent `%3A` when written to disk as
+      // part of a `taskId`. See MESOS-9109.
+#ifdef __WINDOWS__
+      strings::replace(stringify(taskId), ":", "%3A")
+#else
+      stringify(taskId)
+#endif // __WINDOWS__
+  );
 }
 
 
