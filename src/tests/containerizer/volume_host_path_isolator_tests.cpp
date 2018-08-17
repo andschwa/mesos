@@ -495,7 +495,7 @@ TEST_P(VolumeHostPathIsolatorMesosTest, ROOT_ChangeRootFilesystem)
         {LAUNCH({task})});
   } else if (GetParam().isDefaultExecutor()) {
     ExecutorInfo executor;
-    executor.mutable_executor_id()->set_value("default");
+    executor.mutable_executor_id()->set_value("default:id");
     executor.set_type(ExecutorInfo::DEFAULT);
     executor.mutable_framework_id()->CopyFrom(frameworkId.get());
     executor.mutable_resources()->CopyFrom(

@@ -1733,7 +1733,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(
   taskGroup.add_tasks()->CopyFrom(task);
 
   ExecutorInfo executor;
-  executor.mutable_executor_id()->set_value("default");
+  executor.mutable_executor_id()->set_value("default:id");
   executor.set_type(ExecutorInfo::DEFAULT);
   executor.mutable_framework_id()->CopyFrom(frameworkId.get());
   executor.mutable_resources()->CopyFrom(executorResources);
@@ -1869,7 +1869,7 @@ TEST_F_TEMP_DISABLED_ON_WINDOWS(
   taskGroup.add_tasks()->CopyFrom(task);
 
   ExecutorInfo executor;
-  executor.mutable_executor_id()->set_value("default");
+  executor.mutable_executor_id()->set_value("default:id");
   executor.set_type(ExecutorInfo::DEFAULT);
   executor.mutable_framework_id()->CopyFrom(frameworkId.get());
   executor.mutable_resources()->CopyFrom(executorResources);

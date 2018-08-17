@@ -749,7 +749,7 @@ TEST_F(ExecutorAuthorizationTest, RunTaskGroup)
     allocatedResources(Resources::parse("cpus:0.1;mem:32;disk:32").get(), "*");
 
   ExecutorInfo executor;
-  executor.mutable_executor_id()->set_value("default");
+  executor.mutable_executor_id()->set_value("default:id");
   executor.set_type(ExecutorInfo::DEFAULT);
   executor.mutable_framework_id()->CopyFrom(frameworkId.get());
   executor.mutable_resources()->CopyFrom(executorResources);

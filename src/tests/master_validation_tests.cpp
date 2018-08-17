@@ -2098,7 +2098,7 @@ TEST_F(TaskValidationTest, TaskUsesExecutorInfoWithoutCommandInfo)
   // Note that we don't set type as 'CUSTOM' because it is not
   // required for `LAUNCH` operation.
   ExecutorInfo executor;
-  executor.mutable_executor_id()->set_value("default");
+  executor.mutable_executor_id()->set_value("default:id");
 
   EXPECT_CALL(sched, resourceOffers(&driver, _))
     .WillOnce(LaunchTasks(executor, 1, 1, 16, "*"))
@@ -2141,7 +2141,7 @@ TEST_F(TaskValidationTest, TaskUsesDefaultExecutor)
   // Create a 'DEFAULT' executor.
   ExecutorInfo executor;
   executor.set_type(ExecutorInfo::DEFAULT);
-  executor.mutable_executor_id()->set_value("default");
+  executor.mutable_executor_id()->set_value("default:id");
 
   EXPECT_CALL(sched, resourceOffers(&driver, _))
     .WillOnce(LaunchTasks(executor, 1, 1, 16, "*"))
@@ -2299,7 +2299,7 @@ TEST_F(TaskValidationTest, DuplicatedTaskID)
   ASSERT_FALSE(offers->empty());
 
   ExecutorInfo executor;
-  executor.mutable_executor_id()->set_value("default");
+  executor.mutable_executor_id()->set_value("default:id");
   executor.mutable_command()->set_value("exit 1");
 
   // Create two tasks with the same id.
@@ -2383,7 +2383,7 @@ TEST_F(TaskValidationTest, ExecutorInfoDiffersOnSameSlave)
   ASSERT_FALSE(offers->empty());
 
   ExecutorInfo executor;
-  executor.mutable_executor_id()->set_value("default");
+  executor.mutable_executor_id()->set_value("default:id");
   executor.mutable_command()->set_value("exit 1");
 
   TaskInfo task1;
@@ -4045,7 +4045,7 @@ TEST_F(TaskGroupValidationTest, TaskUsesDifferentExecutor)
   EXPECT_EQ(TASK_ERROR, task1Status->state());
   EXPECT_EQ(TaskStatus::REASON_TASK_GROUP_INVALID, task1Status->reason());
   EXPECT_EQ(
-      "The `ExecutorInfo` of task '1' is different from executor 'default'",
+      "The `ExecutorInfo` of task '1' is different from executor 'default:id'",
       task1Status->message());
 
   AWAIT_READY(task2Status);

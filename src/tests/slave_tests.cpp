@@ -1661,7 +1661,7 @@ TEST_F(SlaveTest, StateEndpoint)
   ASSERT_TRUE(executors.values[0].is<JSON::Object>());
   JSON::Object executor = executors.values[0].as<JSON::Object>();
 
-  EXPECT_EQ("default", executor.values["id"]);
+  EXPECT_EQ("default:id", executor.values["id"]);
   EXPECT_EQ("", executor.values["source"]);
   EXPECT_EQ("*", executor.values["role"]);
   EXPECT_EQ(
@@ -1674,7 +1674,7 @@ TEST_F(SlaveTest, StateEndpoint)
   EXPECT_EQ(1u, tasks->values.size());
 
   JSON::Object taskJSON = tasks->values[0].as<JSON::Object>();
-  EXPECT_EQ("default", taskJSON.values["executor_id"]);
+  EXPECT_EQ("default:id", taskJSON.values["executor_id"]);
   EXPECT_EQ("", taskJSON.values["name"]);
   EXPECT_EQ(taskId.value(), taskJSON.values["id"]);
   EXPECT_EQ("TASK_RUNNING", taskJSON.values["state"]);
@@ -4915,7 +4915,7 @@ TEST_F(SlaveTest, LaunchTasksReorderUnscheduleGC)
   v1::FrameworkID frameworkId(subscribed->framework_id());
 
   v1::ExecutorInfo executorInfo = v1::createExecutorInfo(
-      "default", None(), resources, v1::ExecutorInfo::DEFAULT, frameworkId);
+      "default:id", None(), resources, v1::ExecutorInfo::DEFAULT, frameworkId);
 
   // Create two separate task groups that use the same executor.
   v1::TaskInfo taskInfo1 = v1::createTask(agentId, resources, "sleep 1000");
@@ -5062,7 +5062,7 @@ TEST_F(SlaveTest, LaunchTasksReorderTaskAuthorization)
   v1::FrameworkID frameworkId(subscribed->framework_id());
 
   v1::ExecutorInfo executorInfo = v1::createExecutorInfo(
-      "default", None(), resources, v1::ExecutorInfo::DEFAULT, frameworkId);
+      "default:id", None(), resources, v1::ExecutorInfo::DEFAULT, frameworkId);
 
   // Create two separate task groups that use the same executor.
   v1::TaskInfo taskInfo1 = v1::createTask(agentId, resources, "sleep 1000");
@@ -9830,8 +9830,8 @@ TEST_F(SlaveTest, BrowseExecutorSandboxByVirtualPath)
   EXPECT_TRUE(os::exists(latestRunPath));
   ASSERT_SOME(os::write(path::join(latestRunPath, "foo.bar"), "testing"));
 
-  const string virtualPath =
-    paths::getExecutorVirtualPath(frameworkId, DEFAULT_EXECUTOR_ID);
+  const string virtualPath = process::http::encode(
+      paths::getExecutorVirtualPath(frameworkId, DEFAULT_EXECUTOR_ID));
 
   const process::UPID files("files", slave.get()->pid.address);
 

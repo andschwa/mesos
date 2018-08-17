@@ -138,7 +138,7 @@ TEST_F(UpgradeTest, ReregisterOldAgentWithMultiRoleMaster)
   EXPECT_CALL(exec, registered(_, _, _, _));
 
   ExecutorInfo executorInfo =
-    createExecutorInfo("default", "exit 1", "cpus:0.1");
+    createExecutorInfo("default:id", "exit 1", "cpus:0.1");
   EXPECT_CALL(sched, resourceOffers(&driver, _))
     .WillOnce(LaunchTasks(executorInfo, 1, 1, 64, "foo"))
     .WillRepeatedly(Return()); // Ignore subsequent offers.

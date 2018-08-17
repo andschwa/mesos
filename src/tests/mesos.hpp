@@ -2264,7 +2264,11 @@ inline mesos::Environment createEnvironment(
 
 
 // Macros to get/create (default) ExecutorInfos and FrameworkInfos.
-#define DEFAULT_EXECUTOR_INFO createExecutorInfo("default", "exit 1")
+//
+// NOTE: This in particular tests an edge case on Windows where some
+// executors, e.g. Chronos, use `:` in their `executorId` field, and
+// this is a reserved character on Windows. It elsewhere unsupported.
+#define DEFAULT_EXECUTOR_INFO createExecutorInfo("default:id", "exit 1")
 
 
 #define DEFAULT_CREDENTIAL DefaultCredential::create()

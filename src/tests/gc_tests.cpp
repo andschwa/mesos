@@ -590,7 +590,7 @@ TEST_F(GarbageCollectorIntegrationTest, ExitedExecutor)
       process::http::get(
           latest,
           "browse",
-          "path=" + latestDir,
+          "path=" + process::http::encode(latestDir),
           createBasicAuthHeaders(DEFAULT_CREDENTIAL)));
 
   Clock::pause();
@@ -628,7 +628,7 @@ TEST_F(GarbageCollectorIntegrationTest, ExitedExecutor)
       process::http::get(
           files,
           "browse",
-          "path=" + executorDir,
+          "path=" + process::http::encode(executorDir),
           createBasicAuthHeaders(DEFAULT_CREDENTIAL)));
 
   AWAIT_EXPECT_RESPONSE_STATUS_EQ(
